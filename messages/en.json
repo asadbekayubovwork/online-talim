@@ -20,6 +20,43 @@
       "teachers": "Instructors"
     }
   },
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "subtitle": "Log in to your account and continue learning",
+      "username": "Username",
+      "usernamePlaceholder": "Enter your username",
+      "password": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "submit": "Sign In",
+      "noAccount": "Don't have an account?",
+      "register": "Register",
+      "forgotPassword": "Forgot your password?"
+    },
+    "register": {
+      "title": "Register",
+      "subtitle": "Create a new account and join the world of knowledge",
+      "section1": "Username and password",
+      "section2": "Additional information",
+      "section3": "Personal data",
+      "username": "Username",
+      "password": "Password",
+      "email": "Email address",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "city": "City / district",
+      "country": "Country",
+      "birthdate": "Date of birth",
+      "phone": "Phone number",
+      "universityId": "University ID (for Hanafi fiqh faculty students)",
+      "whatsapp": "WhatsApp number (optional)",
+      "nationality": "Nationality",
+      "submit": "Create account",
+      "cancel": "Cancel",
+      "hasAccount": "Already have an account?",
+      "loginLink": "Sign In"
+    }
+  },
   "coursesSection": {
     "badge": "Departments & Courses",
     "title": "Academic",
