@@ -1,0 +1,48 @@
+{
+  "nav": {
+    "courses": "Courses",
+    "about": "About",
+    "contact": "Contact",
+    "login": "Login"
+  },
+  "hero": {
+    "badge": "Professional education in Uzbek language",
+    "title": "Take your knowledge",
+    "titleHighlight": "to the next level",
+    "titleEnd": "",
+    "description": "Get online courses from the best instructors. Enhance your professional skills through video lessons, tests, and certificates.",
+    "startLearning": "Start Learning",
+    "viewCourses": "View Courses",
+    "stats": {
+      "students": "Students",
+      "courses": "Courses",
+      "certificates": "Certificates",
+      "teachers": "Instructors"
+    }
+  },
+  "coursesSection": {
+    "badge": "Departments & Courses",
+    "title": "Academic",
+    "titleHighlight": "directions",
+    "description": "Get deep Islamic education across four main directions — from preparation to the rank of Mufti.",
+    "viewAll": "View all courses",
+    "free": "Free",
+    "lessons": "lessons",
+    "hours": "hours",
+    "students": "students",
+    "enroll": "Start",
+    "semesters": "semesters",
+    "filterAll": "All",
+    "level": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    },
+    "categories": {
+      "tayyorlov": "Ifta Preparation",
+      "ifto": "Ifta Department",
+      "ijoza": "Ijaza Courses",
+      "umumiy": "General Courses"
+    }
+  }
+}

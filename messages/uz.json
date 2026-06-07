@@ -1,0 +1,108 @@
+{
+  "nav": {
+    "courses": "Kurslar",
+    "about": "Haqida",
+    "contact": "Aloqa",
+    "login": "Kirish"
+  },
+  "hero": {
+    "badge": "O'zbek tilida professional ta'lim",
+    "title": "Bilimingizni",
+    "titleHighlight": "yangi bosqichga",
+    "titleEnd": "olib chiqing",
+    "description": "Eng yaxshi o'qituvchilardan onlayn kurslar oling. Video darslar, testlar va sertifikatlar orqali kasbiy mahoratni oshiring.",
+    "startLearning": "O'qishni boshlash",
+    "viewCourses": "Kurslarni ko'rish",
+    "stats": {
+      "students": "O'quvchilar",
+      "courses": "Kurslar",
+      "certificates": "Sertifikatlar",
+      "teachers": "O'qituvchilar"
+    }
+  },
+  "coursesSection": {
+    "badge": "Bo'limlar va kurslar",
+    "title": "Ilmiy",
+    "titleHighlight": "yo'nalishlar",
+    "description": "To'rtta asosiy yo'nalish bo'yicha chuqur islomiy ta'lim oling — tayyorlovdan Muftiy darajasigacha.",
+    "viewAll": "Barcha kurslarni ko'rish",
+    "free": "Bepul",
+    "lessons": "dars",
+    "hours": "soat",
+    "students": "talaba",
+    "enroll": "Boshlash",
+    "semesters": "semestr",
+    "filterAll": "Barchasi",
+    "level": {
+      "beginner": "Boshlang'ich",
+      "intermediate": "O'rta",
+      "advanced": "Yuqori"
+    },
+    "categories": {
+      "tayyorlov": "Iftoga tayyorlov",
+      "ifto": "Ifto bo'limi",
+      "ijoza": "Ijoza kurslari",
+      "umumiy": "Umumiy kurslar"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Tizimga kirish",
+      "subtitle": "Hisobingizga kiring va o'qishni davom ettiring",
+      "username": "Foydalanuvchi nomi",
+      "usernamePlaceholder": "Foydalanuvchi nomingizni kiriting",
+      "password": "Parol",
+      "passwordPlaceholder": "Parolingizni kiriting",
+      "submit": "Kirish",
+      "noAccount": "Hisobingiz yo'qmi?",
+      "register": "Ro'yxatdan o'tish",
+      "forgotPassword": "Parolni unutdingizmi?"
+    },
+    "register": {
+      "title": "Ro'yxatdan o'tish",
+      "subtitle": "Yangi hisob yarating va ilm olamiga qo'shiling",
+      "section1": "Foydalanuvchi nomi va parol",
+      "section2": "Qo'shimcha ma'lumotlar",
+      "section3": "Shaxsiy ma'lumotlar",
+      "username": "Foydalanuvchi nomi",
+      "usernamePlaceholder": "Foydalanuvchi nomini kiriting",
+      "password": "Parol",
+      "passwordPlaceholder": "Kamida 8 ta belgi",
+      "passwordHint": "Parol kamida 8 ta belgidan iborat bo'lishi kerak",
+      "email": "Email manzil",
+      "emailPlaceholder": "email@example.com",
+      "emailAgain": "Email (takror)",
+      "emailAgainPlaceholder": "Emailni qayta kiriting",
+      "firstName": "Ism",
+      "firstNamePlaceholder": "Ismingizni kiriting",
+      "lastName": "Familiya",
+      "lastNamePlaceholder": "Familiyangizni kiriting",
+      "city": "Shahar / tuman",
+      "cityPlaceholder": "Shahringizni kiriting",
+      "country": "Davlat",
+      "countryPlaceholder": "Davlatni tanlang",
+      "birthdate": "Tug'ilgan sana",
+      "phone": "Telefon raqami",
+      "phonePlaceholder": "+998 90 000 00 00",
+      "universityId": "Universitet raqami (Hanafiy fiqh fakulteti talabalari uchun)",
+      "universityIdPlaceholder": "Universitet ID raqamingiz",
+      "whatsapp": "WhatsApp raqami (ixtiyoriy)",
+      "whatsappPlaceholder": "+998 90 000 00 00",
+      "nationality": "Fuqarolik",
+      "nationalityPlaceholder": "Fuqaroligingizni kiriting",
+      "submit": "Hisobni yaratish",
+      "cancel": "Bekor qilish",
+      "hasAccount": "Hisobingiz bormi?",
+      "loginLink": "Kirish",
+      "required": "Majburiy maydon",
+      "day": "Kun",
+      "month": "Oy",
+      "year": "Yil",
+      "months": {
+        "1": "Yanvar", "2": "Fevral", "3": "Mart", "4": "Aprel",
+        "5": "May", "6": "Iyun", "7": "Iyul", "8": "Avgust",
+        "9": "Sentabr", "10": "Oktabr", "11": "Noyabr", "12": "Dekabr"
+      }
+    }
+  }
+}
