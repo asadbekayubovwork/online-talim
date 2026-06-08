@@ -4,10 +4,9 @@ import { useLocale } from "next-intl";
 import Link from "next/link";
 
 const departments = [
-  { href: "/courses?cat=tayyorlov", label: "Iftoga tayyorlov", arabic: "قسم التأهيل للإفتاء" },
-  { href: "/courses?cat=ifto", label: "Ifto bo'limi", arabic: "قسم الإفتاء" },
-  { href: "/courses?cat=ijoza", label: "Ijoza kurslari", arabic: "قسم دورات الإجازة" },
-  { href: "/courses?cat=umumiy", label: "Umumiy kurslar", arabic: "قسم الدورات العامة" },
+  { href: "/courses?cat=fiqh", label: "Hanafiy fiqhi va uning usuli darslari", arabic: "الفِقْهُ الحَنَفِيُّ وَأُصُولُهُ" },
+  { href: "/courses?cat=aqida", label: "Aqida darslari", arabic: "العَقِيدَة" },
+  { href: "/courses?cat=tazkiya", label: "Tazkiya darslari", arabic: "التَّزْكِيَة" },
 ];
 
 const quickLinks = [
