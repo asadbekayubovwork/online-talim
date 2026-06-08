@@ -24,7 +24,7 @@
     "badge": "Bo'limlar va kurslar",
     "title": "Ilmiy",
     "titleHighlight": "yo'nalishlar",
-    "description": "To'rtta asosiy yo'nalish bo'yicha chuqur islomiy ta'lim oling — tayyorlovdan Muftiy darajasigacha.",
+    "description": "Uchta asosiy yo'nalish bo'yicha chuqur islomiy ta'lim oling — tayyorlovdan Muftiy darajasigacha.",
     "viewAll": "Barcha kurslarni ko'rish",
     "free": "Bepul",
     "lessons": "dars",
@@ -39,10 +39,9 @@
       "advanced": "Yuqori"
     },
     "categories": {
-      "tayyorlov": "Iftoga tayyorlov",
-      "ifto": "Ifto bo'limi",
-      "ijoza": "Ijoza kurslari",
-      "umumiy": "Umumiy kurslar"
+      "fiqh": "Hanafiy fiqhi va uning usuli darslari",
+      "aqida": "Aqida darslari",
+      "tazkiya": "Tazkiya darslari"
     }
   },
   "auth": {

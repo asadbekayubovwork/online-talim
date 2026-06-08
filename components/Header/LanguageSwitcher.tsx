@@ -46,9 +46,10 @@ export default function LanguageSwitcher({ scrolled = false }: { scrolled?: bool
             : "border-white/25 hover:border-white/40 text-white bg-white/10"
         }`}
       >
-        <span className="font-medium">{current.label}</span>
-        <span className={`text-xs ${scrolled ? "text-gray-400" : "text-white/50"}`}>
-          ({current.code})
+        <span className="font-medium hidden sm:inline">{current.label}</span>
+        <span className={`text-xs uppercase sm:normal-case sm:text-xs ${scrolled ? "text-gray-500 sm:text-gray-400" : "text-white/80 sm:text-white/50"}`}>
+          <span className="sm:hidden">{current.code}</span>
+          <span className="hidden sm:inline">({current.code})</span>
         </span>
         <svg
           className={`w-3 h-3 ml-0.5 transition-transform duration-200 ${open ? "rotate-180" : ""} ${

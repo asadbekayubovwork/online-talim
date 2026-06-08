@@ -84,7 +84,7 @@
     "badge": "Departments & Courses",
     "title": "Academic",
     "titleHighlight": "directions",
-    "description": "Get deep Islamic education across four main directions — from preparation to the rank of Mufti.",
+    "description": "Get deep Islamic education across three main directions — from preparation to the rank of Mufti.",
     "viewAll": "View all courses",
     "free": "Free",
     "lessons": "lessons",
@@ -99,10 +99,9 @@
       "advanced": "Advanced"
     },
     "categories": {
-      "tayyorlov": "Ifta Preparation",
-      "ifto": "Ifta Department",
-      "ijoza": "Ijaza Courses",
-      "umumiy": "General Courses"
+      "fiqh": "Hanafi Fiqh & its Principles",
+      "aqida": "Aqidah (Creed)",
+      "tazkiya": "Tazkiyah (Purification)"
     }
   }
 }

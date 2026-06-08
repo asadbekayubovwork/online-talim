@@ -4,8 +4,11 @@ import { useTranslations, useLocale } from "next-intl";
 import Link from "next/link";
 import { useState } from "react";
 
+// Deterministic thousands separator (space) — avoids SSR/CSR locale mismatch.
+const formatNumber = (n: number) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+
 type Level = "beginner" | "intermediate" | "advanced";
-type Category = "tayyorlov" | "ifto" | "ijoza" | "umumiy";
+type Category = "fiqh" | "aqida" | "tazkiya";
 
 interface Course {
   id: number;
@@ -32,7 +35,7 @@ const courses: Course[] = [
     arabicTitle: "مقدمة الصلاة",
     description: "Namoz asoslarini chuqur o'rganish. Hanafiy mazhabiga ko'ra namozning farz, vojib va sunnatlarini qamrab oluvchi kitob.",
     instructor: "Shayx Abdulloh Domla",
-    category: "tayyorlov",
+    category: "fiqh",
     lessons: 24,
     hours: 12,
     students: 540,
@@ -47,7 +50,7 @@ const courses: Course[] = [
     arabicTitle: "تحفة الملوك",
     description: "Hanafiy fiqhining asosiy masalalarini qamrab olgan qimmatli risola. Ibodat va muomalotga oid masalalar.",
     instructor: "Ustoz Ibrohim Hasan",
-    category: "tayyorlov",
+    category: "fiqh",
     lessons: 36,
     hours: 18,
     students: 420,
@@ -62,7 +65,7 @@ const courses: Course[] = [
     arabicTitle: "تحفة الطلاب",
     description: "Talabalar uchun mo'ljallangan fiqhiy asar. Ibodat masalalarida mustahkam asos hosil qilish uchun.",
     instructor: "Ustoz Ibrohim Hasan",
-    category: "tayyorlov",
+    category: "fiqh",
     lessons: 30,
     hours: 15,
     students: 380,
@@ -77,7 +80,7 @@ const courses: Course[] = [
     arabicTitle: "مسار الأصول",
     description: "Usul ul-fiqh — fiqh ilmining metodologik asoslarini o'rganish. Fatvo chiqarishda zarur bo'lgan qoidalar.",
     instructor: "Dr. Yusuf Muhammadiy",
-    category: "tayyorlov",
+    category: "fiqh",
     lessons: 40,
     hours: 20,
     students: 310,
@@ -92,7 +95,7 @@ const courses: Course[] = [
     arabicTitle: "شرح الوقاية",
     description: "Hanafiy fiqhidagi 'Al-Viqoya' asarining sharhi. Muftiylik darajasiga tayyorlovning eng muhim qismi.",
     instructor: "Shayx Abdulloh Domla",
-    category: "tayyorlov",
+    category: "fiqh",
     lessons: 52,
     hours: 26,
     students: 290,
@@ -107,7 +110,7 @@ const courses: Course[] = [
     arabicTitle: "تنسيق النصوص الدينية",
     description: "MS Word va boshqa dasturlarda arab yozuvidagi diniy matnlarni to'g'ri formatlash va rasmiylashtirish.",
     instructor: "Ustoz Sherzod Karimov",
-    category: "tayyorlov",
+    category: "fiqh",
     lessons: 16,
     hours: 8,
     students: 460,
@@ -123,7 +126,7 @@ const courses: Course[] = [
     arabicTitle: "برنامج الإفتاء",
     description: "8 semestrlik (24 oy) oliy darajali dastur. Qiyosiy va amaliy fiqh bo'yicha 'Muftiy' maqomini olishga tayyorlovchi kurs.",
     instructor: "Shayx Abdulloh Domla",
-    category: "ifto",
+    category: "fiqh",
     lessons: 120,
     hours: 192,
     students: 180,
@@ -140,7 +143,7 @@ const courses: Course[] = [
     arabicTitle: "الهداية — كتاب البيوع",
     description: "Hanafiy fiqhining asosiy manbasidan 'Buyuu' bo'limi. Kursni tugatganlarga kitobni o'qitish huquqi beriladi.",
     instructor: "Dr. Yusuf Muhammadiy",
-    category: "ijoza",
+    category: "fiqh",
     lessons: 45,
     hours: 22,
     students: 220,
@@ -157,7 +160,7 @@ const courses: Course[] = [
     arabicTitle: "دروس التجويد",
     description: "Qur'on tilovatining qoidalarini o'rganish. Makhorijul huruf, sifatlar va tajvid qoidalari batafsil.",
     instructor: "Qori Muhammadali",
-    category: "umumiy",
+    category: "fiqh",
     lessons: 28,
     hours: 14,
     students: 1240,
@@ -172,7 +175,7 @@ const courses: Course[] = [
     arabicTitle: "التزكية",
     description: "Islomiy ruhiy tarbiya. Nafsni poklash, yomon xulqlardan xalos bo'lish va yaxshi axloqni shakllantirish.",
     instructor: "Shayx Abdulloh Domla",
-    category: "umumiy",
+    category: "tazkiya",
     lessons: 20,
     hours: 10,
     students: 890,
@@ -185,10 +188,9 @@ const courses: Course[] = [
 
 const categories: { key: "all" | Category; arabicLabel: string }[] = [
   { key: "all", arabicLabel: "الجميع" },
-  { key: "tayyorlov", arabicLabel: "قسم التأهيل للإفتاء" },
-  { key: "ifto", arabicLabel: "قسم الإفتاء" },
-  { key: "ijoza", arabicLabel: "قسم دورات الإجازة" },
-  { key: "umumiy", arabicLabel: "قسم الدورات العامة" },
+  { key: "fiqh", arabicLabel: "الفِقْهُ الحَنَفِيُّ وَأُصُولُهُ" },
+  { key: "aqida", arabicLabel: "العَقِيدَة" },
+  { key: "tazkiya", arabicLabel: "التَّزْكِيَة" },
 ];
 
 const levelColors: Record<Level, string> = {
@@ -293,7 +295,7 @@ export default function CoursesSection() {
                 <span className={`absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full text-white ${
                   course.price === null ? "bg-green-500/80" : "bg-white/20 backdrop-blur-sm"
                 }`}>
-                  {course.price === null ? t("free") : `${course.price.toLocaleString()} so'm`}
+                  {course.price === null ? t("free") : `${formatNumber(course.price)} so'm`}
                 </span>
               </div>
 
@@ -343,7 +345,7 @@ export default function CoursesSection() {
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    {course.students.toLocaleString()} {t("students")}
+                    {formatNumber(course.students)} {t("students")}
                   </span>
                 </div>
 

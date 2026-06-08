@@ -6,16 +6,12 @@ import { useState, useEffect, useCallback } from "react";
 
 const slides = [
   {
-    src: "/hero/aldin-nasrun-1Xq9EMStf2o-unsplash.jpg",
-    alt: "Online ta'lim",
+    src: "/hero/academy-group.jpg",
+    alt: "Abu-Hanifa akademiyasi talabalari",
   },
   {
-    src: "/hero/naufal-fawwaz-assalam-ouLZd1BrQbk-unsplash.jpg",
-    alt: "O'quvchilar",
-  },
-  {
-    src: "/hero/raka-dwi-wicaksana-Jbk_Tce8Z1U-unsplash.jpg",
-    alt: "Kurslar",
+    src: "/hero/academy-lecture.jpg",
+    alt: "Masjiddagi dars",
   },
 ];
 
