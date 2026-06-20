@@ -43,6 +43,9 @@
     "enroll": "Boshlash",
     "semesters": "semestr",
     "filterAll": "Barchasi",
+    "loadError": "Kurslarni yuklab bo'lmadi. Keyinroq qayta urinib ko'ring.",
+    "empty": "Hozircha bu yo'nalishda kurslar yo'q.",
+    "courseCount": "{count} ta kurs",
     "level": {
       "beginner": "Boshlang'ich",
       "intermediate": "O'rta",
@@ -142,6 +145,8 @@
     "startCourse": "Kursni boshlash",
     "continueCourse": "Davom ettirish",
     "enroll": "Kursga yozilish",
+    "enrolling": "Yozilmoqda...",
+    "enrollError": "Yozilishda xatolik yuz berdi. Qayta urinib ko'ring.",
     "preview": "Bepul ko'rish",
     "aboutTitle": "Kurs haqida",
     "whatYouLearnTitle": "Nimalarni o'rganasiz",
@@ -160,7 +165,9 @@
     "includesMobile": "Mobil va kompyuterda",
     "includesCertificate": "Tugatganlik sertifikati",
     "previewBadge": "Bepul",
-    "lockedBadge": "Yopiq"
+    "lockedBadge": "Yopiq",
+    "notFoundTitle": "Kurs topilmadi",
+    "notFoundText": "Bu kurs mavjud emas yoki olib tashlangan."
   },
   "lesson": {
     "backToCourse": "Kursga qaytish",
@@ -178,7 +185,13 @@
     "resourcePdf": "Dars konspekti (PDF)",
     "resourceAudio": "Audio versiya (MP3)",
     "download": "Yuklab olish",
-    "lessonLabel": "{order}-dars"
+    "lessonLabel": "{order}-dars",
+    "loading": "Yuklanmoqda...",
+    "notFound": "Dars topilmadi",
+    "noVideo": "Video mavjud emas",
+    "saving": "Saqlanmoqda...",
+    "lockedText": "Bu darsni ko'rish uchun kursga yozilishingiz kerak.",
+    "enrollCta": "Kursga yozilish"
   },
   "myCourses": {
     "title": "Mening kurslarim",
@@ -190,6 +203,7 @@
     "progress": "{percent}% tugatilgan",
     "lessonsDone": "{total} dardan {done} tasi",
     "empty": "Siz hali birorta kursga yozilmagansiz.",
-    "browse": "Kurslarni ko'rish"
+    "browse": "Kurslarni ko'rish",
+    "loadError": "Kurslarni yuklab bo'lmadi. Keyinroq qayta urinib ko'ring."
   }
 }

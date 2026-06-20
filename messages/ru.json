@@ -116,6 +116,9 @@
     "enroll": "Начать",
     "semesters": "семестров",
     "filterAll": "Все",
+    "loadError": "Не удалось загрузить курсы. Попробуйте позже.",
+    "empty": "В этом направлении пока нет курсов.",
+    "courseCount": "{count} курс(ов)",
     "level": {
       "beginner": "Начальный",
       "intermediate": "Средний",
@@ -142,6 +145,8 @@
     "startCourse": "Начать курс",
     "continueCourse": "Продолжить",
     "enroll": "Записаться на курс",
+    "enrolling": "Запись...",
+    "enrollError": "Ошибка при записи. Попробуйте ещё раз.",
     "preview": "Смотреть бесплатно",
     "aboutTitle": "О курсе",
     "whatYouLearnTitle": "Чему вы научитесь",
@@ -160,7 +165,9 @@
     "includesMobile": "На телефоне и компьютере",
     "includesCertificate": "Сертификат об окончании",
     "previewBadge": "Бесплатно",
-    "lockedBadge": "Закрыто"
+    "lockedBadge": "Закрыто",
+    "notFoundTitle": "Курс не найден",
+    "notFoundText": "Этот курс не существует или был удалён."
   },
   "lesson": {
     "backToCourse": "Назад к курсу",
@@ -178,7 +185,13 @@
     "resourcePdf": "Конспект урока (PDF)",
     "resourceAudio": "Аудиоверсия (MP3)",
     "download": "Скачать",
-    "lessonLabel": "Урок {order}"
+    "lessonLabel": "Урок {order}",
+    "loading": "Загрузка...",
+    "notFound": "Урок не найден",
+    "noVideo": "Видео недоступно",
+    "saving": "Сохранение...",
+    "lockedText": "Чтобы смотреть этот урок, запишитесь на курс.",
+    "enrollCta": "Записаться на курс"
   },
   "myCourses": {
     "title": "Мои курсы",
@@ -190,6 +203,7 @@
     "progress": "{percent}% завершено",
     "lessonsDone": "{done} из {total} уроков",
     "empty": "Вы ещё не записались ни на один курс.",
-    "browse": "Смотреть курсы"
+    "browse": "Смотреть курсы",
+    "loadError": "Не удалось загрузить курсы. Попробуйте позже."
   }
 }

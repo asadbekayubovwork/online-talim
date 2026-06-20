@@ -1,16 +1,16 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { notFound } from "next/navigation";
 import Link from "next/link";
-import { use, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import {
-  getCourse,
-  getCurriculum,
-  getLesson,
-  getAdjacentLessons,
-  getEnrollment,
-} from "@/lib/courses";
+  fetchCourseDetail,
+  getAdjacent,
+  type CatalogCourseDetail,
+  type CatalogLesson,
+} from "@/lib/catalog";
+import { getCourseEnrollment, saveLessonProgress } from "@/lib/enrollments";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function LessonPlayerPage({
   params,
@@ -19,22 +19,148 @@ export default function LessonPlayerPage({
 }) {
   const { locale, id, lessonId } = use(params);
   const t = useTranslations("lesson");
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const course = getCourse(Number(id));
-  if (!course) notFound();
+  const [data, setData] = useState<CatalogCourseDetail | null>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "notfound">("loading");
+  const [enrolled, setEnrolled] = useState(false);
+  const [completedCount, setCompletedCount] = useState(0);
+  const [marking, setMarking] = useState(false);
+  // Throttle watch-time saves: remember the video position (seconds) we last
+  // persisted, and only save again after it advances by >= 15s.
+  const lastSavedSecRef = useRef(-Infinity);
 
-  const lesson = getLesson(course, Number(lessonId));
-  if (!lesson) notFound();
+  useEffect(() => {
+    let cancelled = false;
+    fetchCourseDetail(id)
+      .then((res) => {
+        if (cancelled) return;
+        if (!res) {
+          setStatus("notfound");
+          return;
+        }
+        setData(res);
+        setStatus("ready");
+      })
+      .catch(() => {
+        if (!cancelled) setStatus("notfound");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
-  const sections = getCurriculum(course);
-  const { prev, next } = getAdjacentLessons(course, lesson.id);
-  const enrollment = getEnrollment(course.id);
-  const completed = enrollment?.completedLessons ?? 0;
-  const isDone = lesson.order <= completed;
+  // Resolve enrollment + how many lessons are already completed.
+  useEffect(() => {
+    if (authLoading || !isAuthenticated) return;
+    let cancelled = false;
+    getCourseEnrollment(id).then((res) => {
+      if (cancelled || !res) return;
+      setEnrolled(res.enrolled);
+      setCompletedCount(res.completedLessons);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, isAuthenticated, id]);
 
-  const lessonHref = (lid: number) =>
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-gray-500">
+          <svg className="w-6 h-6 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          {t("loading")}
+        </div>
+      </div>
+    );
+  }
+
+  const course = data?.course;
+  const lessons = data?.lessons ?? [];
+  const sections = data?.sections ?? [];
+  const lesson = lessons.find((l) => l.id === lessonId);
+
+  if (status === "notfound" || !course || !lesson) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
+        <div className="text-center">
+          <p className="text-xl font-bold text-gray-900 mb-3">{t("notFound")}</p>
+          <Link
+            href={`/${locale}/courses${course ? `/${course.id}` : ""}`}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition-colors"
+          >
+            {t("backToCourse")}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const total = lessons.length;
+  const completed = completedCount;
+  const { prev, next } = getAdjacent(lessons, lesson.id);
+  const isDone = lesson.order <= completedCount;
+  const canWatch = enrolled || lesson.preview;
+
+  const lessonHref = (lid: string) =>
     `/${locale}/courses/${course.id}/lessons/${lid}`;
+
+  const handleMarkComplete = async () => {
+    setMarking(true);
+    try {
+      await saveLessonProgress(lesson.id, { completed: true });
+      setCompletedCount((c) => Math.max(c, lesson.order));
+    } catch {
+      // Keep current UI state; the user can retry.
+    } finally {
+      setMarking(false);
+    }
+  };
+
+  // Periodically persist watch time so the video can resume later. Only the
+  // <video> fallback exposes currentTime; YouTube embeds aren't tracked here.
+  const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    if (!enrolled) return;
+    const seconds = Math.floor(e.currentTarget.currentTime);
+    if (seconds - lastSavedSecRef.current < 15) return;
+    lastSavedSecRef.current = seconds;
+    saveLessonProgress(lesson.id, { watchedSeconds: seconds }).catch(() => {});
+  };
+
+  const renderVideo = (l: CatalogLesson) => {
+    if (l.youtubeId) {
+      return (
+        <iframe
+          key={l.id}
+          className="w-full h-full"
+          src={`https://www.youtube.com/embed/${l.youtubeId}`}
+          title={l.title}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      );
+    }
+    if (l.videoUrl) {
+      return (
+        <video
+          key={l.id}
+          className="w-full h-full"
+          src={l.videoUrl}
+          controls
+          onTimeUpdate={handleTimeUpdate}
+        />
+      );
+    }
+    return (
+      <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
+        {t("noVideo")}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
@@ -61,7 +187,7 @@ export default function LessonPlayerPage({
           </svg>
         </button>
         <span className="hidden lg:block text-xs text-slate-400 w-28 text-right">
-          {t("lessonsProgress", { done: completed, total: course.lessons })}
+          {t("lessonsProgress", { done: completed, total })}
         </span>
       </header>
 
@@ -71,14 +197,22 @@ export default function LessonPlayerPage({
           {/* Video */}
           <div className="bg-black">
             <div className="max-w-5xl mx-auto aspect-video">
-              <iframe
-                key={lesson.id}
-                className="w-full h-full"
-                src={`https://www.youtube.com/embed/${lesson.youtubeId}`}
-                title={lesson.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+              {canWatch ? (
+                renderVideo(lesson)
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-center px-6">
+                  <svg className="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <p className="text-slate-300 text-sm max-w-sm">{t("lockedText")}</p>
+                  <Link
+                    href={`/${locale}/courses/${course.id}`}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition-colors"
+                  >
+                    {t("enrollCta")}
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
 
@@ -98,14 +232,18 @@ export default function LessonPlayerPage({
                   </svg>
                   {t("completed")}
                 </span>
-              ) : (
-                <button className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-600 border border-gray-300 hover:border-blue-500 hover:text-blue-600 px-3 py-1.5 rounded-lg transition-colors flex-shrink-0">
+              ) : enrolled ? (
+                <button
+                  onClick={handleMarkComplete}
+                  disabled={marking}
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-600 border border-gray-300 hover:border-blue-500 hover:text-blue-600 disabled:opacity-60 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg transition-colors flex-shrink-0 cursor-pointer"
+                >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  {t("markComplete")}
+                  {marking ? t("saving") : t("markComplete")}
                 </button>
-              )}
+              ) : null}
             </div>
 
             {/* Prev / Next */}
@@ -139,7 +277,9 @@ export default function LessonPlayerPage({
             {/* About */}
             <section className="mb-8">
               <h2 className="text-lg font-bold text-gray-900 mb-2">{t("aboutTitle")}</h2>
-              <p className="text-sm text-gray-600 leading-relaxed">{t("aboutText")}</p>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                {lesson.description || t("aboutText")}
+              </p>
             </section>
 
             {/* Resources */}
@@ -179,7 +319,7 @@ export default function LessonPlayerPage({
             <div>
               <h2 className="font-bold text-gray-900 text-sm">{t("courseContent")}</h2>
               <p className="text-xs text-gray-400">
-                {t("lessonsProgress", { done: completed, total: course.lessons })}
+                {t("lessonsProgress", { done: completed, total })}
               </p>
             </div>
             <button

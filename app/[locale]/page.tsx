@@ -5,8 +5,6 @@ import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import CoursesSection from "@/components/CoursesSection";
 import Footer from "@/components/Footer";
-import JsonLd from "@/components/JsonLd";
-import { coursesItemListSchema } from "@/lib/structured-data";
 
 export async function generateMetadata({
   params,
@@ -34,7 +32,6 @@ export default async function HomePage({
 
   return (
     <>
-      <JsonLd data={coursesItemListSchema(locale as Locale)} />
       <Header />
       <main>
         <Hero />

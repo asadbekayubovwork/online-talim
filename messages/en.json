@@ -116,6 +116,9 @@
     "enroll": "Start",
     "semesters": "semesters",
     "filterAll": "All",
+    "loadError": "Couldn't load courses. Please try again later.",
+    "empty": "No courses in this track yet.",
+    "courseCount": "{count} courses",
     "level": {
       "beginner": "Beginner",
       "intermediate": "Intermediate",
@@ -142,6 +145,8 @@
     "startCourse": "Start course",
     "continueCourse": "Continue",
     "enroll": "Enroll in course",
+    "enrolling": "Enrolling...",
+    "enrollError": "Couldn't enroll. Please try again.",
     "preview": "Watch for free",
     "aboutTitle": "About this course",
     "whatYouLearnTitle": "What you'll learn",
@@ -160,7 +165,9 @@
     "includesMobile": "On mobile and desktop",
     "includesCertificate": "Certificate of completion",
     "previewBadge": "Free",
-    "lockedBadge": "Locked"
+    "lockedBadge": "Locked",
+    "notFoundTitle": "Course not found",
+    "notFoundText": "This course doesn't exist or has been removed."
   },
   "lesson": {
     "backToCourse": "Back to course",
@@ -178,7 +185,13 @@
     "resourcePdf": "Lesson notes (PDF)",
     "resourceAudio": "Audio version (MP3)",
     "download": "Download",
-    "lessonLabel": "Lesson {order}"
+    "lessonLabel": "Lesson {order}",
+    "loading": "Loading...",
+    "notFound": "Lesson not found",
+    "noVideo": "Video unavailable",
+    "saving": "Saving...",
+    "lockedText": "Enroll in the course to watch this lesson.",
+    "enrollCta": "Enroll in course"
   },
   "myCourses": {
     "title": "My Courses",
@@ -190,6 +203,7 @@
     "progress": "{percent}% complete",
     "lessonsDone": "{done} of {total} lessons",
     "empty": "You haven't enrolled in any courses yet.",
-    "browse": "Browse courses"
+    "browse": "Browse courses",
+    "loadError": "Couldn't load courses. Please try again later."
   }
 }

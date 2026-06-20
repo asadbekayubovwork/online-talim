@@ -1,9 +1,11 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import CourseCard from "@/components/CourseCard";
+import { fetchPublishedCourses, type CatalogCourse, type Category } from "@/lib/catalog";
 
 /* Two-tone (blue + amber) line icons matching the brand accent. */
 
@@ -53,7 +55,7 @@ function HeartIcon() {
 }
 
 interface Direction {
-  key: "fiqh" | "aqida" | "tazkiya";
+  key: Category;
   arabic: string;
   icon: ReactNode;
 }
@@ -64,9 +66,48 @@ const directions: Direction[] = [
   { key: "tazkiya", arabic: "التَّزْكِيَة", icon: <HeartIcon /> },
 ];
 
+function CardSkeleton() {
+  return (
+    <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 animate-pulse">
+      <div className="h-32 bg-gray-200" />
+      <div className="p-5 space-y-3">
+        <div className="h-4 bg-gray-200 rounded w-1/3" />
+        <div className="h-5 bg-gray-200 rounded w-3/4" />
+        <div className="h-3 bg-gray-200 rounded w-full" />
+        <div className="h-10 bg-gray-200 rounded-xl mt-4" />
+      </div>
+    </div>
+  );
+}
+
 export default function CoursesPage() {
   const tNav = useTranslations("nav");
   const tCourses = useTranslations("coursesSection");
+
+  const [active, setActive] = useState<"all" | Category>("all");
+  const [courses, setCourses] = useState<CatalogCourse[]>([]);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchPublishedCourses()
+      .then((data) => {
+        if (cancelled) return;
+        setCourses(data);
+        setStatus("ready");
+      })
+      .catch(() => {
+        if (!cancelled) setStatus("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const countFor = (key: Category) => courses.filter((c) => c.category === key).length;
+  const filtered = active === "all" ? courses : courses.filter((c) => c.category === active);
+
+  const toggle = (key: Category) => setActive((prev) => (prev === key ? "all" : key));
 
   return (
     <>
@@ -77,37 +118,107 @@ export default function CoursesPage() {
             {tNav("courses")}
           </h1>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
-            {directions.map((direction) => (
-              <div
-                key={direction.key}
-                className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 p-6 sm:p-7 flex flex-col cursor-pointer"
-              >
-                {/* Icon */}
-                <div className="mb-5">{direction.icon}</div>
+          {/* Department filters */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 mb-12">
+            {directions.map((direction) => {
+              const isActive = active === direction.key;
+              return (
+                <button
+                  key={direction.key}
+                  onClick={() => toggle(direction.key)}
+                  className={`group text-left bg-white rounded-2xl border shadow-sm transition-all duration-200 p-6 sm:p-7 flex flex-col cursor-pointer ${
+                    isActive
+                      ? "border-blue-500 ring-2 ring-blue-200"
+                      : "border-gray-100 hover:shadow-md hover:border-blue-200"
+                  }`}
+                >
+                  {/* Icon */}
+                  <div className="mb-5">{direction.icon}</div>
 
-                {/* Title (uz) + subtitle (ar) */}
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900 leading-snug group-hover:text-blue-600 transition-colors">
-                  {tCourses(`categories.${direction.key}`)}
-                </h2>
-                <p className="text-base text-gray-400 mt-1.5" dir="rtl">
-                  {direction.arabic}
-                </p>
+                  {/* Title (uz) + subtitle (ar) */}
+                  <h2 className={`text-lg sm:text-xl font-bold leading-snug transition-colors ${
+                    isActive ? "text-blue-600" : "text-gray-900 group-hover:text-blue-600"
+                  }`}>
+                    {tCourses(`categories.${direction.key}`)}
+                  </h2>
+                  <p className="text-base text-gray-400 mt-1.5" dir="rtl">
+                    {direction.arabic}
+                  </p>
 
-                {/* Footer: arrow */}
-                <div className="flex items-center justify-end mt-6 pt-4 border-t border-gray-100">
-                  <svg
-                    className="w-5 h-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </div>
-              </div>
-            ))}
+                  {/* Footer: count + arrow */}
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
+                    <span className="text-xs font-medium text-gray-400">
+                      {status === "ready"
+                        ? tCourses("courseCount", { count: countFor(direction.key) })
+                        : ""}
+                    </span>
+                    <svg
+                      className={`w-5 h-5 transition-all ${
+                        isActive
+                          ? "text-blue-600 translate-x-1"
+                          : "text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1"
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </div>
+                </button>
+              );
+            })}
           </div>
+
+          {/* Section heading + reset */}
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <h2 className="text-xl font-bold text-gray-900">
+              {active === "all" ? tCourses("filterAll") : tCourses(`categories.${active}`)}
+              {status === "ready" && (
+                <span className="text-sm font-normal text-gray-400 ml-2">({filtered.length})</span>
+              )}
+            </h2>
+            {active !== "all" && (
+              <button
+                onClick={() => setActive("all")}
+                className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+              >
+                {tCourses("filterAll")}
+              </button>
+            )}
+          </div>
+
+          {/* Loading */}
+          {status === "loading" && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <CardSkeleton key={i} />
+              ))}
+            </div>
+          )}
+
+          {/* Error */}
+          {status === "error" && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center text-gray-500">
+              {tCourses("loadError")}
+            </div>
+          )}
+
+          {/* Empty */}
+          {status === "ready" && filtered.length === 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center text-gray-500">
+              {tCourses("empty")}
+            </div>
+          )}
+
+          {/* Grid */}
+          {status === "ready" && filtered.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filtered.map((course) => (
+                <CourseCard key={course.id} course={course} />
+              ))}
+            </div>
+          )}
         </div>
       </main>
       <Footer />

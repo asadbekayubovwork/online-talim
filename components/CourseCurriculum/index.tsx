@@ -3,13 +3,13 @@
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useState } from "react";
-import type { Section } from "@/lib/courses";
+import type { CatalogSection } from "@/lib/catalog";
 
 interface Props {
-  sections: Section[];
+  sections: CatalogSection[];
   locale: string;
-  courseId: number;
-  /** Mock progress — the first N lessons are treated as completed. */
+  courseId: string;
+  /** Progress — the first N lessons (by order) are treated as completed. */
   completedLessons?: number;
 }
 

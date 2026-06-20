@@ -9,7 +9,8 @@
 
 import type { Locale } from "@/i18n/routing";
 import { SITE_NAME, SITE_URL, localeUrl } from "@/lib/seo";
-import { courses, type Category, type Course } from "@/lib/courses";
+import type { Category } from "@/lib/courses";
+import type { CatalogCourse } from "@/lib/catalog";
 
 const ORG_ID = `${SITE_URL}/#organization`;
 const WEBSITE_ID = `${SITE_URL}/#website`;
@@ -86,12 +87,12 @@ export function websiteSchema(locale: Locale) {
 }
 
 /** A single schema.org/Course, for a course detail page rich result. */
-export function courseSchema(locale: Locale, course: Course) {
+export function courseSchema(locale: Locale, course: CatalogCourse) {
   return {
     "@context": "https://schema.org",
     "@type": "Course",
     name: course.title,
-    alternateName: course.arabicTitle,
+    ...(course.arabicTitle ? { alternateName: course.arabicTitle } : {}),
     description: course.description,
     inLanguage: locale,
     url: localeUrl(locale, `courses/${course.id}`),
@@ -109,17 +110,16 @@ export function courseSchema(locale: Locale, course: Course) {
     hasCourseInstance: {
       "@type": "CourseInstance",
       courseMode: "online",
-      courseWorkload: `PT${course.hours}H`,
-      instructor: {
-        "@type": "Person",
-        name: course.instructor,
-      },
+      ...(course.hours > 0 ? { courseWorkload: `PT${course.hours}H` } : {}),
+      ...(course.instructor
+        ? { instructor: { "@type": "Person", name: course.instructor } }
+        : {}),
     },
   };
 }
 
 /** ItemList of every course as a schema.org/Course, for course rich results. */
-export function coursesItemListSchema(locale: Locale) {
+export function coursesItemListSchema(locale: Locale, courses: CatalogCourse[]) {
   return {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -130,10 +130,10 @@ export function coursesItemListSchema(locale: Locale) {
       item: {
         "@type": "Course",
         name: c.title,
-        alternateName: c.arabicTitle,
+        ...(c.arabicTitle ? { alternateName: c.arabicTitle } : {}),
         description: c.description,
         inLanguage: locale,
-        url: localeUrl(locale, "courses"),
+        url: localeUrl(locale, `courses/${c.id}`),
         provider: {
           "@type": "EducationalOrganization",
           name: SITE_NAME,
@@ -141,14 +141,14 @@ export function coursesItemListSchema(locale: Locale) {
         },
         offers: {
           "@type": "Offer",
-          category: "Free",
-          price: 0,
+          category: c.price === null ? "Free" : "Paid",
+          price: c.price ?? 0,
           priceCurrency: "UZS",
         },
         hasCourseInstance: {
           "@type": "CourseInstance",
           courseMode: "online",
-          courseWorkload: `PT${c.hours}H`,
+          ...(c.hours > 0 ? { courseWorkload: `PT${c.hours}H` } : {}),
         },
       },
     })),
