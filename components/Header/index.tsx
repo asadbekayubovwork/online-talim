@@ -2,12 +2,14 @@
 
 import { useTranslations, useLocale } from "next-intl";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import LanguageSwitcher from "./LanguageSwitcher";
 
 export default function Header() {
   const t = useTranslations("nav");
   const locale = useLocale();
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -20,12 +22,15 @@ export default function Header() {
   }, []);
 
   const navLinks = [
-    { href: "#courses", label: t("courses") },
+    { href: `/${locale}/courses`, label: t("courses") },
     { href: "#about", label: t("about") },
     { href: "#contact", label: t("contact") },
   ];
 
-  const isScrolled = scrolled;
+  // Home page has a dark hero behind the (transparent) header; on every other
+  // page the content is light, so the header always uses its solid style.
+  const isHome = pathname === `/${locale}` || pathname === "/";
+  const isScrolled = scrolled || !isHome;
 
   return (
     <header

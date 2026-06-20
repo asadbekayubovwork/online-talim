@@ -1,7 +1,8 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import Image from "next/image";
+import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 
 const slides = [
@@ -19,6 +20,7 @@ const INTERVAL = 5000;
 
 export default function Hero() {
   const t = useTranslations("hero");
+  const locale = useLocale();
   const [current, setCurrent] = useState(0);
   const [animating, setAnimating] = useState(false);
 
@@ -88,8 +90,8 @@ export default function Hero() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              type="button"
+            <Link
+              href={`/${locale}/courses`}
               className="inline-flex items-center justify-center gap-2.5 px-7 py-3.5 bg-blue-600 text-white text-base font-semibold rounded-2xl shadow-lg shadow-blue-900/50 cursor-pointer"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -97,17 +99,17 @@ export default function Hero() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {t("startLearning")}
-            </button>
+            </Link>
 
-            <button
-              type="button"
+            <Link
+              href={`/${locale}/courses`}
               className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white/15 border border-white/40 text-white text-base font-semibold rounded-2xl backdrop-blur-sm cursor-pointer"
             >
               {t("viewCourses")}
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
-            </button>
+            </Link>
           </div>
           </div>
 

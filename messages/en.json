@@ -1,4 +1,11 @@
 {
+  "meta": {
+    "title": "Abu-Hanifa Academy — Hanafi Fiqh, Aqidah & Tazkiyah lessons online",
+    "titleTemplate": "%s — Abu-Hanifa Academy",
+    "titleDefault": "Abu-Hanifa Academy — online Islamic education",
+    "description": "Abu-Hanifa Academy — online Islamic education in the way of Imam Abu Hanifa. Lessons in Hanafi Fiqh and its principles, Aqidah and Tazkiyah. Free video courses from foundations to Mufti level.",
+    "ogImageAlt": "Abu-Hanifa Academy — online Islamic education platform"
+  },
   "nav": {
     "courses": "Courses",
     "about": "About",
@@ -74,9 +81,18 @@
       "month": "Month",
       "year": "Year",
       "months": {
-        "1": "January", "2": "February", "3": "March", "4": "April",
-        "5": "May", "6": "June", "7": "July", "8": "August",
-        "9": "September", "10": "October", "11": "November", "12": "December"
+        "1": "January",
+        "2": "February",
+        "3": "March",
+        "4": "April",
+        "5": "May",
+        "6": "June",
+        "7": "July",
+        "8": "August",
+        "9": "September",
+        "10": "October",
+        "11": "November",
+        "12": "December"
       }
     }
   },

@@ -1,4 +1,11 @@
 {
+  "meta": {
+    "title": "Abu-Hanifa akademiyasi — Hanafiy fiqhi, Aqida va Tazkiya darslari onlayn",
+    "titleTemplate": "%s — Abu-Hanifa akademiyasi",
+    "titleDefault": "Abu-Hanifa akademiyasi — onlayn islomiy ta'lim",
+    "description": "Abu-Hanifa akademiyasi — Imom Abu Hanifa yo'lidagi onlayn islomiy ta'lim. Hanafiy fiqhi va uning usuli darslari, Aqida darslari va Tazkiya darslari. Tayyorlovdan Muftiy darajasigacha bepul video darslar.",
+    "ogImageAlt": "Abu-Hanifa akademiyasi — onlayn islomiy ta'lim platformasi"
+  },
   "nav": {
     "courses": "Kurslar",
     "about": "Haqida",
@@ -98,9 +105,18 @@
       "month": "Oy",
       "year": "Yil",
       "months": {
-        "1": "Yanvar", "2": "Fevral", "3": "Mart", "4": "Aprel",
-        "5": "May", "6": "Iyun", "7": "Iyul", "8": "Avgust",
-        "9": "Sentabr", "10": "Oktabr", "11": "Noyabr", "12": "Dekabr"
+        "1": "Yanvar",
+        "2": "Fevral",
+        "3": "Mart",
+        "4": "Aprel",
+        "5": "May",
+        "6": "Iyun",
+        "7": "Iyul",
+        "8": "Avgust",
+        "9": "Sentabr",
+        "10": "Oktabr",
+        "11": "Noyabr",
+        "12": "Dekabr"
       }
     }
   }
