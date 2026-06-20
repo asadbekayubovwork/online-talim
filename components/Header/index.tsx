@@ -2,14 +2,24 @@
 
 import { useTranslations, useLocale } from "next-intl";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import LanguageSwitcher from "./LanguageSwitcher";
+import UserMenu from "./UserMenu";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function Header() {
   const t = useTranslations("nav");
   const locale = useLocale();
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, loading, logout } = useAuth();
+
+  async function handleMobileLogout() {
+    setMobileOpen(false);
+    await logout();
+    router.replace(`/${locale}`);
+  }
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -77,19 +87,25 @@ export default function Header() {
           <div className="flex items-center gap-2.5">
             <LanguageSwitcher scrolled={isScrolled} />
 
-            <Link
-              href={`/${locale}/login`}
-              className={`hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200 ${
-                isScrolled
-                  ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md"
-                  : "bg-white/15 hover:bg-white/25 border border-white/30 text-white"
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-              </svg>
-              {t("login")}
-            </Link>
+            {user ? (
+              <UserMenu scrolled={isScrolled} />
+            ) : (
+              !loading && (
+                <Link
+                  href={`/${locale}/login`}
+                  className={`hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200 ${
+                    isScrolled
+                      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+                      : "bg-white/15 hover:bg-white/25 border border-white/30 text-white"
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                  </svg>
+                  {t("login")}
+                </Link>
+              )
+            )}
 
             {/* Mobile burger */}
             <button
@@ -129,12 +145,25 @@ export default function Header() {
               </Link>
             ))}
             <div className="pt-2 px-4">
-              <Link
-                href={`/${locale}/login`}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl"
-              >
-                {t("login")}
-              </Link>
+              {user ? (
+                <button
+                  onClick={handleMobileLogout}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 text-sm font-semibold rounded-xl"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  {t("logout")}
+                </button>
+              ) : (
+                <Link
+                  href={`/${locale}/login`}
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl"
+                >
+                  {t("login")}
+                </Link>
+              )}
             </div>
           </div>
         )}

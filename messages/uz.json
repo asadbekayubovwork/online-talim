@@ -11,7 +11,9 @@
     "myCourses": "Mening kurslarim",
     "about": "Haqida",
     "contact": "Aloqa",
-    "login": "Kirish"
+    "login": "Kirish",
+    "logout": "Chiqish",
+    "profile": "Profil"
   },
   "hero": {
     "badge": "O'zbek tilida professional ta'lim",
@@ -63,7 +65,9 @@
       "submit": "Kirish",
       "noAccount": "Hisobingiz yo'qmi?",
       "register": "Ro'yxatdan o'tish",
-      "forgotPassword": "Parolni unutdingizmi?"
+      "forgotPassword": "Parolni unutdingizmi?",
+      "submitting": "Kirilmoqda...",
+      "errorGeneric": "Kirishda xatolik yuz berdi. Qayta urinib ko'ring."
     },
     "register": {
       "title": "Ro'yxatdan o'tish",
@@ -102,6 +106,8 @@
       "hasAccount": "Hisobingiz bormi?",
       "loginLink": "Kirish",
       "required": "Majburiy maydon",
+      "submitting": "Yaratilmoqda...",
+      "errorGeneric": "Ro'yxatdan o'tishda xatolik yuz berdi. Qayta urinib ko'ring.",
       "day": "Kun",
       "month": "Oy",
       "year": "Yil",

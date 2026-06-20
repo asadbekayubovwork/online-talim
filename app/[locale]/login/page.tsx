@@ -2,12 +2,36 @@
 
 import { useTranslations, useLocale } from "next-intl";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import { getApiErrorMessage } from "@/lib/auth";
 
 export default function LoginPage() {
   const t = useTranslations("auth.login");
   const locale = useLocale();
+  const router = useRouter();
+  const { login } = useAuth();
+
   const [showPassword, setShowPassword] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (submitting) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      await login({ username: username.trim(), password });
+      router.replace(`/${locale}/my-courses`);
+    } catch (err) {
+      setError(getApiErrorMessage(err, t("errorGeneric")));
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -41,7 +65,17 @@ export default function LoginPage() {
 
             {/* Form */}
             <div className="px-8 py-8">
-              <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+              <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+                {/* Server error */}
+                {error && (
+                  <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-600">
+                    <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {error}
+                  </div>
+                )}
+
                 {/* Username */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -51,6 +85,9 @@ export default function LoginPage() {
                     type="text"
                     autoComplete="username"
                     placeholder={t("usernamePlaceholder")}
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-gray-900 placeholder:text-gray-400 text-sm"
                   />
                 </div>
@@ -70,6 +107,9 @@ export default function LoginPage() {
                       type={showPassword ? "text" : "password"}
                       autoComplete="current-password"
                       placeholder={t("passwordPlaceholder")}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
                       className="w-full px-4 py-3 pr-11 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-gray-900 placeholder:text-gray-400 text-sm"
                     />
                     <button
@@ -94,9 +134,16 @@ export default function LoginPage() {
                 {/* Submit */}
                 <button
                   type="submit"
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold rounded-xl transition-all duration-200 shadow-md shadow-blue-100 cursor-pointer mt-2"
+                  disabled={submitting}
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold rounded-xl transition-all duration-200 shadow-md shadow-blue-100 cursor-pointer mt-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
                 >
-                  {t("submit")}
+                  {submitting && (
+                    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  )}
+                  {submitting ? t("submitting") : t("submit")}
                 </button>
               </form>
 

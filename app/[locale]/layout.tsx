@@ -5,6 +5,7 @@ import { getMessages, getTranslations, setRequestLocale } from "next-intl/server
 import { notFound } from "next/navigation";
 import { routing, type Locale } from "@/i18n/routing";
 import JsonLd from "@/components/JsonLd";
+import { AuthProvider } from "@/components/AuthProvider";
 import { organizationSchema, websiteSchema } from "@/lib/structured-data";
 import {
   SITE_NAME,
@@ -135,7 +136,7 @@ export default async function LocaleLayout({
           ]}
         />
         <NextIntlClientProvider messages={messages}>
-          {children}
+          <AuthProvider>{children}</AuthProvider>
         </NextIntlClientProvider>
       </body>
     </html>

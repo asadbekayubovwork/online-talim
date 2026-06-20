@@ -2,7 +2,10 @@
 
 import { useTranslations, useLocale } from "next-intl";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useCallback } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import { getApiErrorMessage, type RegisterPayload } from "@/lib/auth";
 
 const MONTHS = [
   "", "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
@@ -131,12 +134,16 @@ function selectCls(hasError: boolean) {
 export default function RegisterPage() {
   const t = useTranslations("auth.register");
   const locale = useLocale();
+  const router = useRouter();
+  const { register } = useAuth();
 
   const [values, setValues] = useState<FormValues>(initial);
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Touched>({});
   const [showPassword, setShowPassword] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const set = useCallback((field: keyof FormValues, value: string) => {
     setValues((v) => {
@@ -154,14 +161,41 @@ export default function RegisterPage() {
   const show = (field: keyof FormValues) =>
     !!(errors[field] && (touched[field] || submitted));
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting) return;
     setSubmitted(true);
+    setServerError(null);
     const errs = validate(values);
     setErrors(errs);
-    if (Object.keys(errs).length === 0) {
-      // submit logic here
-      console.log("Submit", values);
+    if (Object.keys(errs).length > 0) return;
+
+    // Map the form to the backend RegisterDto (omit optional empty fields;
+    // `emailAgain` is a client-only confirmation and is not sent).
+    const payload: RegisterPayload = {
+      username: values.username.trim(),
+      password: values.password,
+      email: values.email.trim(),
+      firstName: values.firstName.trim(),
+      lastName: values.lastName.trim(),
+      birthDay: Number(values.birthDay),
+      birthMonth: Number(values.birthMonth),
+      birthYear: Number(values.birthYear),
+      nationality: values.nationality.trim(),
+      ...(values.city.trim() && { city: values.city.trim() }),
+      ...(values.country && { country: values.country }),
+      ...(values.phone.trim() && { phone: values.phone.trim() }),
+      ...(values.universityId.trim() && { universityId: values.universityId.trim() }),
+      ...(values.whatsapp.trim() && { whatsapp: values.whatsapp.trim() }),
+    };
+
+    setSubmitting(true);
+    try {
+      await register(payload);
+      router.replace(`/${locale}/my-courses`);
+    } catch (err) {
+      setServerError(getApiErrorMessage(err, t("errorGeneric")));
+      setSubmitting(false);
     }
   }
 
@@ -187,6 +221,16 @@ export default function RegisterPage() {
           </div>
 
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
+
+            {/* Server error */}
+            {serverError && (
+              <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-600">
+                <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                {serverError}
+              </div>
+            )}
 
             {/* ── Section 1 ── */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-6">
@@ -418,9 +462,16 @@ export default function RegisterPage() {
             <div className="flex flex-col sm:flex-row items-center gap-3 pt-2 pb-6">
               <button
                 type="submit"
-                className="w-full sm:w-auto flex-1 py-3 px-8 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold rounded-xl transition-all duration-200 shadow-md shadow-blue-100 cursor-pointer"
+                disabled={submitting}
+                className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 py-3 px-8 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold rounded-xl transition-all duration-200 shadow-md shadow-blue-100 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
               >
-                {t("submit")}
+                {submitting && (
+                  <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                )}
+                {submitting ? t("submitting") : t("submit")}
               </button>
               <Link
                 href={`/${locale}/login`}

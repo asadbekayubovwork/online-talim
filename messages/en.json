@@ -11,7 +11,9 @@
     "myCourses": "My Courses",
     "about": "About",
     "contact": "Contact",
-    "login": "Login"
+    "login": "Login",
+    "logout": "Log out",
+    "profile": "Profile"
   },
   "hero": {
     "badge": "Professional education in Uzbek language",
@@ -39,7 +41,9 @@
       "submit": "Sign In",
       "noAccount": "Don't have an account?",
       "register": "Register",
-      "forgotPassword": "Forgot your password?"
+      "forgotPassword": "Forgot your password?",
+      "submitting": "Signing in...",
+      "errorGeneric": "Sign-in failed. Please try again."
     },
     "register": {
       "title": "Register",
@@ -78,6 +82,8 @@
       "hasAccount": "Already have an account?",
       "loginLink": "Sign In",
       "required": "Required field",
+      "submitting": "Creating...",
+      "errorGeneric": "Registration failed. Please try again.",
       "day": "Day",
       "month": "Month",
       "year": "Year",
