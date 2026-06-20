@@ -253,3 +253,17 @@ export async function fetchCourseDetail(
     return null;
   }
 }
+
+/**
+ * A single lesson by id (`GET /lessons/:id`). This is the source of truth for
+ * the playable `videoUrl` — the course detail list may omit it. Returns `null`
+ * when the lesson doesn't exist or the request fails.
+ */
+export async function fetchLesson(id: string): Promise<CatalogLesson | null> {
+  try {
+    const { data } = await api.get<ApiLesson>(`/lessons/${id}`);
+    return data ? mapLesson(data) : null;
+  } catch {
+    return null;
+  }
+}

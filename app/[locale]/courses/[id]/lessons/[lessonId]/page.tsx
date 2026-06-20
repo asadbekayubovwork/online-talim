@@ -5,6 +5,7 @@ import Link from "next/link";
 import { use, useEffect, useRef, useState } from "react";
 import {
   fetchCourseDetail,
+  fetchLesson,
   getAdjacent,
   type CatalogCourseDetail,
   type CatalogLesson,
@@ -24,6 +25,9 @@ export default function LessonPlayerPage({
 
   const [data, setData] = useState<CatalogCourseDetail | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "notfound">("loading");
+  // The current lesson fetched directly (`GET /lessons/:id`) — the reliable
+  // source for the playable videoUrl.
+  const [currentLesson, setCurrentLesson] = useState<CatalogLesson | null>(null);
   const [enrolled, setEnrolled] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
   const [marking, setMarking] = useState(false);
@@ -50,6 +54,18 @@ export default function LessonPlayerPage({
       cancelled = true;
     };
   }, [id]);
+
+  // Fetch the lesson directly so we always have its videoUrl, even if the
+  // course detail list omits it.
+  useEffect(() => {
+    let cancelled = false;
+    fetchLesson(lessonId).then((l) => {
+      if (!cancelled) setCurrentLesson(l);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [lessonId]);
 
   // Resolve enrollment + how many lessons are already completed.
   useEffect(() => {
@@ -82,7 +98,11 @@ export default function LessonPlayerPage({
   const course = data?.course;
   const lessons = data?.lessons ?? [];
   const sections = data?.sections ?? [];
-  const lesson = lessons.find((l) => l.id === lessonId);
+  // Prefer the directly-fetched lesson (has videoUrl); fall back to the list
+  // entry. Guard against a stale fetch from a previous lessonId.
+  const listLesson = lessons.find((l) => l.id === lessonId);
+  const lesson =
+    currentLesson && currentLesson.id === lessonId ? currentLesson : listLesson;
 
   if (status === "notfound" || !course || !lesson) {
     return (
