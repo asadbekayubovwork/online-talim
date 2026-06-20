@@ -23,6 +23,7 @@ export default function Header() {
 
   const navLinks = [
     { href: `/${locale}/courses`, label: t("courses") },
+    { href: `/${locale}/my-courses`, label: t("myCourses") },
     { href: "#about", label: t("about") },
     { href: "#contact", label: t("contact") },
   ];

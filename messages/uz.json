@@ -8,6 +8,7 @@
   },
   "nav": {
     "courses": "Kurslar",
+    "myCourses": "Mening kurslarim",
     "about": "Haqida",
     "contact": "Aloqa",
     "login": "Kirish"
@@ -119,5 +120,70 @@
         "12": "Dekabr"
       }
     }
+  },
+  "courseDetail": {
+    "backToCourses": "Kurslarga qaytish",
+    "instructor": "O'qituvchi",
+    "free": "Bepul",
+    "lessons": "dars",
+    "hours": "soat video",
+    "students": "talaba",
+    "rating": "reyting",
+    "level": "Daraja",
+    "language": "Til",
+    "languageValue": "O'zbek tili",
+    "lastUpdated": "Yangilangan",
+    "startCourse": "Kursni boshlash",
+    "continueCourse": "Davom ettirish",
+    "enroll": "Kursga yozilish",
+    "preview": "Bepul ko'rish",
+    "aboutTitle": "Kurs haqida",
+    "whatYouLearnTitle": "Nimalarni o'rganasiz",
+    "whatYouLearn": [
+      "Mavzu bo'yicha mustahkam nazariy asos",
+      "Asosiy manbalar bilan mustaqil ishlash",
+      "Amaliy masalalarni hal qilish ko'nikmasi",
+      "Dalillarni to'g'ri tahlil qilish"
+    ],
+    "curriculumTitle": "Kurs dasturi",
+    "curriculumSummary": "{sections} modul · {lessons} dars · {hours} soat",
+    "sectionLessons": "{count} dars",
+    "includesTitle": "Kursga nimalar kiradi",
+    "includesVideo": "{hours} soat video dars",
+    "includesLifetime": "Umrbod foydalanish",
+    "includesMobile": "Mobil va kompyuterda",
+    "includesCertificate": "Tugatganlik sertifikati",
+    "previewBadge": "Bepul",
+    "lockedBadge": "Yopiq"
+  },
+  "lesson": {
+    "backToCourse": "Kursga qaytish",
+    "courseContent": "Kurs tarkibi",
+    "lessonsProgress": "{total} dardan {done} tasi",
+    "preview": "Bepul",
+    "locked": "Yopiq",
+    "prev": "Oldingi",
+    "next": "Keyingi dars",
+    "completed": "Tugatilgan",
+    "markComplete": "Tugatilgan deb belgilash",
+    "aboutTitle": "Dars haqida",
+    "aboutText": "Ushbu darsda mavzuning asosiy jihatlari batafsil yoritiladi. Video orqali tushuntirish, misollar va amaliy tavsiyalar berilgan.",
+    "resourcesTitle": "Qo'shimcha materiallar",
+    "resourcePdf": "Dars konspekti (PDF)",
+    "resourceAudio": "Audio versiya (MP3)",
+    "download": "Yuklab olish",
+    "lessonLabel": "{order}-dars"
+  },
+  "myCourses": {
+    "title": "Mening kurslarim",
+    "subtitle": "Boshlagan kurslaringizni davom ettiring",
+    "inProgress": "Jarayonda",
+    "completed": "Tugatilgan",
+    "continue": "Davom ettirish",
+    "review": "Takrorlash",
+    "progress": "{percent}% tugatilgan",
+    "lessonsDone": "{total} dardan {done} tasi",
+    "empty": "Siz hali birorta kursga yozilmagansiz.",
+    "browse": "Kurslarni ko'rish"
   }
 }

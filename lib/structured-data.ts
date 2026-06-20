@@ -9,7 +9,7 @@
 
 import type { Locale } from "@/i18n/routing";
 import { SITE_NAME, SITE_URL, localeUrl } from "@/lib/seo";
-import { courses, type Category } from "@/lib/courses";
+import { courses, type Category, type Course } from "@/lib/courses";
 
 const ORG_ID = `${SITE_URL}/#organization`;
 const WEBSITE_ID = `${SITE_URL}/#website`;
@@ -81,6 +81,39 @@ export function websiteSchema(locale: Locale) {
         urlTemplate: `${localeUrl(locale, "courses")}?q={search_term_string}`,
       },
       "query-input": "required name=search_term_string",
+    },
+  };
+}
+
+/** A single schema.org/Course, for a course detail page rich result. */
+export function courseSchema(locale: Locale, course: Course) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    name: course.title,
+    alternateName: course.arabicTitle,
+    description: course.description,
+    inLanguage: locale,
+    url: localeUrl(locale, `courses/${course.id}`),
+    provider: {
+      "@type": "EducationalOrganization",
+      name: SITE_NAME,
+      "@id": ORG_ID,
+    },
+    offers: {
+      "@type": "Offer",
+      category: course.price === null ? "Free" : "Paid",
+      price: course.price ?? 0,
+      priceCurrency: "UZS",
+    },
+    hasCourseInstance: {
+      "@type": "CourseInstance",
+      courseMode: "online",
+      courseWorkload: `PT${course.hours}H`,
+      instructor: {
+        "@type": "Person",
+        name: course.instructor,
+      },
     },
   };
 }

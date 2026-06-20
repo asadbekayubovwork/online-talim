@@ -127,9 +127,11 @@ export default function CoursesSection() {
                 {/* Arabic title */}
                 <p className="text-sm text-gray-400 mb-1 text-right" dir="rtl">{course.arabicTitle}</p>
 
-                <h3 className="font-bold text-gray-900 text-base leading-snug mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
-                  {course.title}
-                </h3>
+                <Link href={`/${locale}/courses/${course.id}`}>
+                  <h3 className="font-bold text-gray-900 text-base leading-snug mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
+                    {course.title}
+                  </h3>
+                </Link>
                 <p className="text-sm text-gray-500 leading-relaxed mb-4 line-clamp-3">
                   {course.description}
                 </p>
@@ -165,9 +167,15 @@ export default function CoursesSection() {
                 </div>
 
                 {/* CTA */}
-                <span className="inline-flex items-center justify-center gap-1.5 w-full py-2.5 bg-gray-100 text-gray-400 text-sm font-semibold rounded-xl cursor-default select-none">
-                  🔒 Tez kunda
-                </span>
+                <Link
+                  href={`/${locale}/courses/${course.id}`}
+                  className="inline-flex items-center justify-center gap-1.5 w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
+                >
+                  {t("enroll")}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
               </div>
             </div>
           ))}

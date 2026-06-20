@@ -8,6 +8,7 @@
   },
   "nav": {
     "courses": "Курсы",
+    "myCourses": "Мои курсы",
     "about": "О нас",
     "contact": "Контакты",
     "login": "Войти"
@@ -119,5 +120,70 @@
       "aqida": "Уроки Акыды",
       "tazkiya": "Уроки Тазкии"
     }
+  },
+  "courseDetail": {
+    "backToCourses": "Назад к курсам",
+    "instructor": "Преподаватель",
+    "free": "Бесплатно",
+    "lessons": "уроков",
+    "hours": "часов видео",
+    "students": "студентов",
+    "rating": "рейтинг",
+    "level": "Уровень",
+    "language": "Язык",
+    "languageValue": "Узбекский язык",
+    "lastUpdated": "Обновлено",
+    "startCourse": "Начать курс",
+    "continueCourse": "Продолжить",
+    "enroll": "Записаться на курс",
+    "preview": "Смотреть бесплатно",
+    "aboutTitle": "О курсе",
+    "whatYouLearnTitle": "Чему вы научитесь",
+    "whatYouLearn": [
+      "Прочная теоретическая база по теме",
+      "Самостоятельная работа с основными источниками",
+      "Навык решения практических вопросов",
+      "Правильный анализ доводов"
+    ],
+    "curriculumTitle": "Программа курса",
+    "curriculumSummary": "{sections} модулей · {lessons} уроков · {hours} часов",
+    "sectionLessons": "{count} уроков",
+    "includesTitle": "Что входит в курс",
+    "includesVideo": "{hours} часов видеоуроков",
+    "includesLifetime": "Пожизненный доступ",
+    "includesMobile": "На телефоне и компьютере",
+    "includesCertificate": "Сертификат об окончании",
+    "previewBadge": "Бесплатно",
+    "lockedBadge": "Закрыто"
+  },
+  "lesson": {
+    "backToCourse": "Назад к курсу",
+    "courseContent": "Содержание курса",
+    "lessonsProgress": "{done} из {total} уроков",
+    "preview": "Бесплатно",
+    "locked": "Закрыто",
+    "prev": "Предыдущий",
+    "next": "Следующий урок",
+    "completed": "Завершён",
+    "markComplete": "Отметить как завершённый",
+    "aboutTitle": "Об уроке",
+    "aboutText": "В этом уроке подробно раскрываются основные аспекты темы. Даны объяснения на видео, примеры и практические рекомендации.",
+    "resourcesTitle": "Дополнительные материалы",
+    "resourcePdf": "Конспект урока (PDF)",
+    "resourceAudio": "Аудиоверсия (MP3)",
+    "download": "Скачать",
+    "lessonLabel": "Урок {order}"
+  },
+  "myCourses": {
+    "title": "Мои курсы",
+    "subtitle": "Продолжайте начатые курсы",
+    "inProgress": "В процессе",
+    "completed": "Завершённые",
+    "continue": "Продолжить",
+    "review": "Повторить",
+    "progress": "{percent}% завершено",
+    "lessonsDone": "{done} из {total} уроков",
+    "empty": "Вы ещё не записались ни на один курс.",
+    "browse": "Смотреть курсы"
   }
 }

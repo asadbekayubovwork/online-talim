@@ -201,3 +201,168 @@ export const categories: { key: "all" | Category; arabicLabel: string }[] = [
   { key: "aqida", arabicLabel: "العَقِيدَة" },
   { key: "tazkiya", arabicLabel: "التَّزْكِيَة" },
 ];
+
+// ---------------------------------------------------------------------------
+// FAKE curriculum layer (temporary — until the backend is ready).
+//
+// Everything below is deterministically generated from the static course data
+// so that the SAME lessons/sections/durations are produced on the server and
+// the client (no hydration mismatch) and on every page (detail + player).
+// When the backend lands, replace the generators with real fetches and keep
+// the exported types/helpers' shapes.
+// ---------------------------------------------------------------------------
+
+export interface Lesson {
+  id: number;
+  /** Position within the whole course (1-based), used for "N-dars" labels. */
+  order: number;
+  title: string;
+  /** Human duration, e.g. "12:30". */
+  duration: string;
+  /** Placeholder YouTube video id — swapped for the real one by the backend. */
+  youtubeId: string;
+  /** Free preview lesson (watchable without enrolling). */
+  preview: boolean;
+}
+
+export interface Section {
+  id: number;
+  title: string;
+  lessons: Lesson[];
+}
+
+// Placeholder YouTube ids. These are public, embeddable videos used purely so
+// the mock player actually plays something. The backend will provide real ids.
+const SAMPLE_YOUTUBE_IDS = [
+  "M7lc1UVf-VE",
+  "aqz-KE-bpKQ",
+  " scRNEYwgSGo".trim(),
+  " tgbNymZ7vqY".trim(),
+  "W6NZfCO5SIk",
+  "Ke90Tje7VS0",
+];
+
+const SECTION_TITLES = [
+  "Kirish moduli",
+  "Asosiy qism",
+  "Chuqurlashtirilgan mavzular",
+  "Amaliy mashg'ulotlar",
+  "Yakuniy modul",
+  "Qo'shimcha materiallar",
+];
+
+const LESSON_TOPICS = [
+  "Kirish va umumiy ma'lumot",
+  "Asosiy istilohlar va ta'riflar",
+  "Birinchi bobning sharhi",
+  "Dalillar va hujjatlar tahlili",
+  "Amaliy masalalar yechimi",
+  "Mazhablar qiyosi",
+  "Muhim qoidalar",
+  "Tarixiy kontekst",
+  "Mavzu bo'yicha savol-javob",
+  "Takrorlash va mustahkamlash",
+  "Manbalar bilan ishlash",
+  "Xulosa va yakuniy fikrlar",
+];
+
+// Cheap deterministic 0..1 pseudo-random from an integer seed.
+function seeded(seed: number): number {
+  const x = Math.sin(seed * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+function pad2(n: number): string {
+  return n < 10 ? `0${n}` : String(n);
+}
+
+/** Build the full section/lesson curriculum for a course (deterministic). */
+export function getCurriculum(course: Course): Section[] {
+  const perSection = 6;
+  const sectionCount = Math.max(1, Math.ceil(course.lessons / perSection));
+  const sections: Section[] = [];
+  let order = 0;
+
+  for (let s = 0; s < sectionCount; s++) {
+    const remaining = course.lessons - order;
+    const count = Math.min(perSection, remaining);
+    const lessons: Lesson[] = [];
+
+    for (let l = 0; l < count; l++) {
+      order += 1;
+      const seed = course.id * 1000 + order;
+      const mins = 6 + Math.floor(seeded(seed) * 19); // 6..24 min
+      const secs = Math.floor(seeded(seed + 7) * 60);
+      lessons.push({
+        id: order,
+        order,
+        title: LESSON_TOPICS[(order - 1) % LESSON_TOPICS.length],
+        duration: `${pad2(mins)}:${pad2(secs)}`,
+        youtubeId: SAMPLE_YOUTUBE_IDS[(order - 1) % SAMPLE_YOUTUBE_IDS.length],
+        // First two lessons of the very first section are free previews.
+        preview: s === 0 && l < 2,
+      });
+    }
+
+    sections.push({
+      id: s + 1,
+      title: SECTION_TITLES[s % SECTION_TITLES.length],
+      lessons,
+    });
+  }
+
+  return sections;
+}
+
+/** Flat, ordered list of every lesson in a course. */
+export function getCourseLessons(course: Course): Lesson[] {
+  return getCurriculum(course).flatMap((section) => section.lessons);
+}
+
+export function getCourse(id: number): Course | undefined {
+  return courses.find((c) => c.id === id);
+}
+
+export function getLesson(
+  course: Course,
+  lessonId: number
+): Lesson | undefined {
+  return getCourseLessons(course).find((l) => l.id === lessonId);
+}
+
+/** Previous / next lesson for player navigation (undefined at the ends). */
+export function getAdjacentLessons(
+  course: Course,
+  lessonId: number
+): { prev?: Lesson; next?: Lesson } {
+  const all = getCourseLessons(course);
+  const i = all.findIndex((l) => l.id === lessonId);
+  if (i === -1) return {};
+  return { prev: all[i - 1], next: all[i + 1] };
+}
+
+// Mock "enrolled" courses with progress. UI mock only — there is no real
+// tracking yet; the backend will own this. `completedLessons` are treated as
+// the first N lessons of the course being done.
+export interface Enrollment {
+  courseId: number;
+  completedLessons: number;
+  /** Lesson to resume from. */
+  currentLessonId: number;
+}
+
+export const enrollments: Enrollment[] = [
+  { courseId: 1, completedLessons: 18, currentLessonId: 19 },
+  { courseId: 9, completedLessons: 28, currentLessonId: 28 }, // completed
+  { courseId: 10, completedLessons: 6, currentLessonId: 7 },
+  { courseId: 2, completedLessons: 4, currentLessonId: 5 },
+];
+
+export function getEnrollment(courseId: number): Enrollment | undefined {
+  return enrollments.find((e) => e.courseId === courseId);
+}
+
+export function progressPercent(course: Course, completedLessons: number): number {
+  if (course.lessons === 0) return 0;
+  return Math.round((completedLessons / course.lessons) * 100);
+}

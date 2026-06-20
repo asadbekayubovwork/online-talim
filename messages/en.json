@@ -8,6 +8,7 @@
   },
   "nav": {
     "courses": "Courses",
+    "myCourses": "My Courses",
     "about": "About",
     "contact": "Contact",
     "login": "Login"
@@ -119,5 +120,70 @@
       "aqida": "Aqidah (Creed)",
       "tazkiya": "Tazkiyah (Purification)"
     }
+  },
+  "courseDetail": {
+    "backToCourses": "Back to courses",
+    "instructor": "Instructor",
+    "free": "Free",
+    "lessons": "lessons",
+    "hours": "hours of video",
+    "students": "students",
+    "rating": "rating",
+    "level": "Level",
+    "language": "Language",
+    "languageValue": "Uzbek",
+    "lastUpdated": "Updated",
+    "startCourse": "Start course",
+    "continueCourse": "Continue",
+    "enroll": "Enroll in course",
+    "preview": "Watch for free",
+    "aboutTitle": "About this course",
+    "whatYouLearnTitle": "What you'll learn",
+    "whatYouLearn": [
+      "A solid theoretical foundation in the topic",
+      "Working independently with the primary sources",
+      "The skill of solving practical questions",
+      "Analyzing evidence correctly"
+    ],
+    "curriculumTitle": "Course content",
+    "curriculumSummary": "{sections} sections · {lessons} lessons · {hours} hours",
+    "sectionLessons": "{count} lessons",
+    "includesTitle": "This course includes",
+    "includesVideo": "{hours} hours of video",
+    "includesLifetime": "Lifetime access",
+    "includesMobile": "On mobile and desktop",
+    "includesCertificate": "Certificate of completion",
+    "previewBadge": "Free",
+    "lockedBadge": "Locked"
+  },
+  "lesson": {
+    "backToCourse": "Back to course",
+    "courseContent": "Course content",
+    "lessonsProgress": "{done} of {total} lessons",
+    "preview": "Free",
+    "locked": "Locked",
+    "prev": "Previous",
+    "next": "Next lesson",
+    "completed": "Completed",
+    "markComplete": "Mark as complete",
+    "aboutTitle": "About this lesson",
+    "aboutText": "This lesson covers the main aspects of the topic in detail, with video explanations, examples, and practical guidance.",
+    "resourcesTitle": "Resources",
+    "resourcePdf": "Lesson notes (PDF)",
+    "resourceAudio": "Audio version (MP3)",
+    "download": "Download",
+    "lessonLabel": "Lesson {order}"
+  },
+  "myCourses": {
+    "title": "My Courses",
+    "subtitle": "Continue the courses you've started",
+    "inProgress": "In progress",
+    "completed": "Completed",
+    "continue": "Continue",
+    "review": "Review",
+    "progress": "{percent}% complete",
+    "lessonsDone": "{done} of {total} lessons",
+    "empty": "You haven't enrolled in any courses yet.",
+    "browse": "Browse courses"
   }
 }
