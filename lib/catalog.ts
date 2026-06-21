@@ -24,7 +24,12 @@ export interface CatalogCourse {
   description: string;
   /** Teacher full name, or "" when the API omits the teacher. */
   instructor: string;
+  /** Styling bucket (fiqh/aqida/tazkiya) — drives the card colour/icon. */
   category: Category;
+  /** Real backend category id (null = kategoriyasiz). Used for tab filtering. */
+  categoryId: string | null;
+  /** Real backend category name ("" when uncategorised). */
+  categoryName: string;
   lessons: number;
   /** Total hours, derived from lesson durations. 0 when unknown (hidden). */
   hours: number;
@@ -173,6 +178,8 @@ export function mapCourse(c: ApiCourse): CatalogCourse {
     description: c.description ?? "",
     instructor,
     category,
+    categoryId: c.category?.id ?? c.categoryId ?? null,
+    categoryName: c.category?.name ?? "",
     lessons: lessonCount,
     hours: hoursFromSeconds(totalSeconds),
     students: c._count?.enrollments ?? 0,

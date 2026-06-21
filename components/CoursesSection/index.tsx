@@ -3,12 +3,20 @@
 import { useTranslations, useLocale } from "next-intl";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { categories, type Category } from "@/lib/courses";
 import { fetchPublishedCourses, type CatalogCourse } from "@/lib/catalog";
+import { fetchCategories, type ApiCategory } from "@/lib/admin";
 import CourseCard from "@/components/CourseCard";
 import JsonLd from "@/components/JsonLd";
 import { coursesItemListSchema } from "@/lib/structured-data";
 import type { Locale } from "@/i18n/routing";
+
+// Arabcha sub-label faqat seed qilingan yo'nalishlar uchun (slug bo'yicha).
+// Yangi (boshqa) kategoriyalar uchun sub-label ko'rsatilmaydi.
+const SLUG_ARABIC: Record<string, string> = {
+  fiqh: "الفِقْهُ الحَنَفِيُّ وَأُصُولُهُ",
+  aqida: "العَقِيدَة",
+  tazkiya: "التَّزْكِيَة",
+};
 
 function CardSkeleton() {
   return (
@@ -28,16 +36,19 @@ function CardSkeleton() {
 export default function CoursesSection() {
   const t = useTranslations("coursesSection");
   const locale = useLocale();
-  const [active, setActive] = useState<"all" | Category>("all");
+  const [active, setActive] = useState<"all" | string>("all");
   const [courses, setCourses] = useState<CatalogCourse[]>([]);
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
     let cancelled = false;
-    fetchPublishedCourses()
-      .then((data) => {
+    Promise.all([fetchPublishedCourses(), fetchCategories()])
+      .then(([courseData, categoryData]) => {
         if (cancelled) return;
-        setCourses(data);
+        setCourses(courseData);
+        // Faqat e'lon qilingan kursi bor yo'nalishlar tab bo'lib chiqadi.
+        setCategories(categoryData.filter((c) => c.courseCount > 0));
         setStatus("ready");
       })
       .catch(() => {
@@ -48,7 +59,12 @@ export default function CoursesSection() {
     };
   }, []);
 
-  const filtered = active === "all" ? courses : courses.filter((c) => c.category === active);
+  const filtered =
+    active === "all" ? courses : courses.filter((c) => c.categoryId === active);
+
+  // Yo'nalish nomi: tarjima mavjud bo'lsa (seed qilingan slug), aks holda DB nomi.
+  const labelFor = (cat: ApiCategory) =>
+    t.has(`categories.${cat.slug}`) ? t(`categories.${cat.slug}`) : cat.name;
 
   return (
     <section className="bg-gray-50 py-20 px-4 sm:px-6 lg:px-8">
@@ -83,25 +99,47 @@ export default function CoursesSection() {
           </Link>
         </div>
 
-        {/* Category filter tabs */}
-        <div className="flex items-center gap-2 flex-wrap mb-8">
-          {categories.map(({ key, arabicLabel }) => (
+        {/* Category filter tabs (dynamic) */}
+        {status === "ready" && categories.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap mb-8">
+            {/* "Barchasi" tugmasi */}
             <button
-              key={key}
-              onClick={() => setActive(key)}
+              onClick={() => setActive("all")}
               className={`flex flex-col items-start px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer border ${
-                active === key
+                active === "all"
                   ? "bg-blue-600 text-white border-blue-600 shadow-md"
                   : "bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600"
               }`}
             >
-              <span>{key === "all" ? t("filterAll") : t(`categories.${key}`)}</span>
-              <span className={`text-xs mt-0.5 font-normal ${active === key ? "text-blue-200" : "text-gray-400"}`} dir="rtl">
-                {arabicLabel}
+              <span>{t("filterAll")}</span>
+              <span className={`text-xs mt-0.5 font-normal ${active === "all" ? "text-blue-200" : "text-gray-400"}`} dir="rtl">
+                الجميع
               </span>
             </button>
-          ))}
-        </div>
+
+            {categories.map((cat) => {
+              const arabic = SLUG_ARABIC[cat.slug];
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setActive(cat.id)}
+                  className={`flex flex-col items-start px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer border ${
+                    active === cat.id
+                      ? "bg-blue-600 text-white border-blue-600 shadow-md"
+                      : "bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600"
+                  }`}
+                >
+                  <span>{labelFor(cat)}</span>
+                  {arabic && (
+                    <span className={`text-xs mt-0.5 font-normal ${active === cat.id ? "text-blue-200" : "text-gray-400"}`} dir="rtl">
+                      {arabic}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Loading skeletons */}
         {status === "loading" && (

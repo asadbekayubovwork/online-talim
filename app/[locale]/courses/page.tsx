@@ -1,70 +1,11 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CourseCard from "@/components/CourseCard";
-import { fetchPublishedCourses, type CatalogCourse, type Category } from "@/lib/catalog";
-
-/* Two-tone (blue + amber) line icons matching the brand accent. */
-
-function ScaleIcon() {
-  return (
-    <svg className="w-9 h-9" fill="none" viewBox="0 0 24 24">
-      <path d="M12 5v15M7 20h10" stroke="#2563eb" strokeWidth="1.8" strokeLinecap="round" />
-      <path
-        d="M5 7.5 2.7 12.5a2.5 2.5 0 0 0 4.6 0L5 7.5zM19 7.5l-2.3 5a2.5 2.5 0 0 0 4.6 0L19 7.5z"
-        stroke="#2563eb"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path d="M5 7.5h14" stroke="#f59e0b" strokeWidth="1.8" strokeLinecap="round" />
-      <circle cx="12" cy="5" r="1.7" fill="#f59e0b" />
-    </svg>
-  );
-}
-
-function BookIcon() {
-  return (
-    <svg className="w-9 h-9" fill="none" viewBox="0 0 24 24">
-      <path
-        d="M12 6.6C10.8 5.8 9.2 5.3 7.5 5.3 5.8 5.3 4.2 5.8 3 6.6v12c1.2-.8 2.8-1.3 4.5-1.3 1.7 0 3.3.5 4.5 1.3m0-12c1.2-.8 2.8-1.3 4.5-1.3 1.7 0 3.3.5 4.5 1.3v12c-1.2-.8-2.8-1.3-4.5-1.3-1.7 0-3.3.5-4.5 1.3m0-12v12"
-        stroke="#2563eb"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="3.6" r="1.5" fill="#f59e0b" />
-    </svg>
-  );
-}
-
-function HeartIcon() {
-  return (
-    <svg className="w-9 h-9" fill="none" viewBox="0 0 24 24">
-      <path
-        d="M12 20.4 10.6 19C5.4 14.3 2 11.2 2 7.5 2 5 4 3 6.5 3c1.7 0 3.3.9 4.2 2.3L12 7.1l1.3-1.8C14.2 3.9 15.8 3 17.5 3 20 3 22 5 22 7.5c0 3.7-3.4 6.8-8.6 11.5L12 20.4z"
-        stroke="#2563eb"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="9" r="1.7" fill="#f59e0b" />
-    </svg>
-  );
-}
-
-interface Direction {
-  key: Category;
-  arabic: string;
-  icon: ReactNode;
-}
-
-const directions: Direction[] = [
-  { key: "fiqh", arabic: "الفِقْهُ الحَنَفِيُّ وَأُصُولُهُ", icon: <ScaleIcon /> },
-  { key: "aqida", arabic: "العَقِيدَة", icon: <BookIcon /> },
-  { key: "tazkiya", arabic: "التَّزْكِيَة", icon: <HeartIcon /> },
-];
+import { fetchPublishedCourses, type CatalogCourse } from "@/lib/catalog";
 
 function CardSkeleton() {
   return (
@@ -84,7 +25,6 @@ export default function CoursesPage() {
   const tNav = useTranslations("nav");
   const tCourses = useTranslations("coursesSection");
 
-  const [active, setActive] = useState<"all" | Category>("all");
   const [courses, setCourses] = useState<CatalogCourse[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
@@ -104,11 +44,6 @@ export default function CoursesPage() {
     };
   }, []);
 
-  const countFor = (key: Category) => courses.filter((c) => c.category === key).length;
-  const filtered = active === "all" ? courses : courses.filter((c) => c.category === active);
-
-  const toggle = (key: Category) => setActive((prev) => (prev === key ? "all" : key));
-
   return (
     <>
       <Header />
@@ -118,74 +53,14 @@ export default function CoursesPage() {
             {tNav("courses")}
           </h1>
 
-          {/* Department filters */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 mb-12">
-            {directions.map((direction) => {
-              const isActive = active === direction.key;
-              return (
-                <button
-                  key={direction.key}
-                  onClick={() => toggle(direction.key)}
-                  className={`group text-left bg-white rounded-2xl border shadow-sm transition-all duration-200 p-6 sm:p-7 flex flex-col cursor-pointer ${
-                    isActive
-                      ? "border-blue-500 ring-2 ring-blue-200"
-                      : "border-gray-100 hover:shadow-md hover:border-blue-200"
-                  }`}
-                >
-                  {/* Icon */}
-                  <div className="mb-5">{direction.icon}</div>
-
-                  {/* Title (uz) + subtitle (ar) */}
-                  <h2 className={`text-lg sm:text-xl font-bold leading-snug transition-colors ${
-                    isActive ? "text-blue-600" : "text-gray-900 group-hover:text-blue-600"
-                  }`}>
-                    {tCourses(`categories.${direction.key}`)}
-                  </h2>
-                  <p className="text-base text-gray-400 mt-1.5" dir="rtl">
-                    {direction.arabic}
-                  </p>
-
-                  {/* Footer: count + arrow */}
-                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
-                    <span className="text-xs font-medium text-gray-400">
-                      {status === "ready"
-                        ? tCourses("courseCount", { count: countFor(direction.key) })
-                        : ""}
-                    </span>
-                    <svg
-                      className={`w-5 h-5 transition-all ${
-                        isActive
-                          ? "text-blue-600 translate-x-1"
-                          : "text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1"
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Section heading + reset */}
+          {/* Section heading */}
           <div className="flex items-center justify-between gap-4 mb-6">
             <h2 className="text-xl font-bold text-gray-900">
-              {active === "all" ? tCourses("filterAll") : tCourses(`categories.${active}`)}
+              {tCourses("filterAll")}
               {status === "ready" && (
-                <span className="text-sm font-normal text-gray-400 ml-2">({filtered.length})</span>
+                <span className="text-sm font-normal text-gray-400 ml-2">({courses.length})</span>
               )}
             </h2>
-            {active !== "all" && (
-              <button
-                onClick={() => setActive("all")}
-                className="text-sm font-semibold text-blue-600 hover:text-blue-700"
-              >
-                {tCourses("filterAll")}
-              </button>
-            )}
           </div>
 
           {/* Loading */}
@@ -205,16 +80,16 @@ export default function CoursesPage() {
           )}
 
           {/* Empty */}
-          {status === "ready" && filtered.length === 0 && (
+          {status === "ready" && courses.length === 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center text-gray-500">
               {tCourses("empty")}
             </div>
           )}
 
           {/* Grid */}
-          {status === "ready" && filtered.length > 0 && (
+          {status === "ready" && courses.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filtered.map((course) => (
+              {courses.map((course) => (
                 <CourseCard key={course.id} course={course} />
               ))}
             </div>

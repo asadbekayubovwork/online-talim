@@ -2,6 +2,7 @@
 // client (auto-attaches the bearer token and refreshes on 401).
 //
 // Endpoints used (all ADMIN-only writes):
+//   GET    /categories                    -> ApiCategory[] (public)
 //   GET    /users                         -> AdminUser[]
 //   GET    /courses                       -> ApiCourse[]   (published list)
 //   GET    /courses/:id                   -> ApiCourse     (with lessons[])
@@ -75,6 +76,14 @@ export interface ApiCourse {
   _count?: { lessons: number; enrollments: number };
 }
 
+export interface ApiCategory {
+  id: string;
+  name: string;
+  slug: string;
+  /** E'lon qilingan kurslar soni (landing tablari faqat > 0 bo'lganlarni ko'rsatadi). */
+  courseCount: number;
+}
+
 export interface CourseInput {
   title: string;
   description: string;
@@ -92,6 +101,12 @@ export interface LessonInput {
   duration?: number;
   order?: number;
   isPreview?: boolean;
+}
+
+// ── Categories ───────────────────────────────────────────────────────────────
+export async function fetchCategories(): Promise<ApiCategory[]> {
+  const { data } = await api.get<ApiCategory[]>("/categories");
+  return data ?? [];
 }
 
 // ── Users ────────────────────────────────────────────────────────────────────

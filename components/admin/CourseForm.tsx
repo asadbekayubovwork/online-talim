@@ -4,8 +4,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   createCourse,
+  fetchCategories,
   getCourse,
   updateCourse,
+  type ApiCategory,
   type CourseLevel,
 } from "@/lib/admin";
 import { getApiErrorMessage } from "@/lib/auth";
@@ -34,11 +36,20 @@ export default function CourseForm({
   const [thumbnail, setThumbnail] = useState("");
   const [price, setPrice] = useState("0");
   const [level, setLevel] = useState<CourseLevel>("BEGINNER");
+  const [categoryId, setCategoryId] = useState("");
   const [isPublished, setIsPublished] = useState(false);
 
+  const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [loading, setLoading] = useState(editing);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Yo'nalishlar ro'yxatini yuklash (tanlovchi uchun).
+  useEffect(() => {
+    fetchCategories()
+      .then(setCategories)
+      .catch(() => setCategories([]));
+  }, []);
 
   useEffect(() => {
     if (!courseId) return;
@@ -49,6 +60,7 @@ export default function CourseForm({
         setThumbnail(c.thumbnail ?? "");
         setPrice(String(c.price ?? 0));
         setLevel(c.level);
+        setCategoryId(c.category?.id ?? c.categoryId ?? "");
         setIsPublished(c.isPublished);
       })
       .catch((e) => setError(getApiErrorMessage(e, "Kursni yuklab bo'lmadi")))
@@ -66,6 +78,7 @@ export default function CourseForm({
         thumbnail: thumbnail.trim() || undefined,
         price: Number(price) || 0,
         level,
+        categoryId: categoryId || undefined,
       };
       if (editing && courseId) {
         await updateCourse(courseId, { ...payload, isPublished });
@@ -164,6 +177,24 @@ export default function CourseForm({
             ))}
           </select>
         </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          Yo'nalish
+        </label>
+        <select
+          className={inputCls + " bg-white cursor-pointer"}
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+        >
+          <option value="">Tanlanmagan</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {editing && (
