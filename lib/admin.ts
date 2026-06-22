@@ -3,6 +3,9 @@
 //
 // Endpoints used (all ADMIN-only writes):
 //   GET    /categories                    -> ApiCategory[] (public)
+//   POST   /categories                    -> Category
+//   PATCH  /categories/:id                -> Category
+//   DELETE /categories/:id                -> { success }
 //   GET    /users                         -> AdminUser[]
 //   GET    /courses                       -> ApiCourse[]   (published list)
 //   GET    /courses/:id                   -> ApiCourse     (with lessons[])
@@ -107,6 +110,23 @@ export interface LessonInput {
 export async function fetchCategories(): Promise<ApiCategory[]> {
   const { data } = await api.get<ApiCategory[]>("/categories");
   return data ?? [];
+}
+
+export async function createCategory(name: string): Promise<ApiCategory> {
+  const { data } = await api.post<ApiCategory>("/categories", { name });
+  return data;
+}
+
+export async function updateCategory(
+  id: string,
+  name: string
+): Promise<ApiCategory> {
+  const { data } = await api.patch<ApiCategory>(`/categories/${id}`, { name });
+  return data;
+}
+
+export async function deleteCategory(id: string): Promise<void> {
+  await api.delete(`/categories/${id}`);
 }
 
 // ── Users ────────────────────────────────────────────────────────────────────
