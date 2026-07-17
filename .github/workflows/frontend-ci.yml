@@ -26,4 +26,11 @@ jobs:
         with:
           name: lint-output
           path: lint-output.txt
-      - run: npm run build
+      - name: Build
+        run: npm run build 2>&1 | tee build-output.txt
+      - name: Upload build report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: build-output.txt
