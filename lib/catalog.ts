@@ -1,15 +1,5 @@
-// Public course catalogue — backend-backed.
-//
-// This is the CLIENT-SIDE data layer for the public site (course grid, course
-// detail, lesson player). It talks to the NestJS backend through the shared
-// intercepted `api` client and maps the raw API shapes (`ApiCourse`,
-// `ApiLesson`) onto the richer view-model the UI expects.
-//
-// The backend does not provide every field the design uses (Arabic title,
-// banner icon/colour, total hours, student count for the list view). Those are
-// filled with sensible fallbacks derived from the data we DO have — see the
-// mappers below. When the backend starts returning them, drop the fallback.
-
+// Backend-backed course catalogue. Presentation components remain unchanged;
+// this mapper only adapts the FastAPI course/section/lesson response.
 import api from "./axios";
 import type { ApiCourse, ApiLesson } from "./admin";
 import type { Category, Level } from "./courses";
@@ -19,28 +9,22 @@ export type { Category, Level };
 export interface CatalogCourse {
   id: string;
   title: string;
-  /** Backend has no Arabic title yet — empty string, hidden by the UI. */
   arabicTitle: string;
   description: string;
-  /** Teacher full name, or "" when the API omits the teacher. */
   instructor: string;
-  /** Styling bucket (fiqh/aqida/tazkiya) — drives the card colour/icon. */
   category: Category;
-  /** Real backend category id (null = kategoriyasiz). Used for tab filtering. */
   categoryId: string | null;
-  /** Real backend category name ("" when uncategorised). */
   categoryName: string;
   lessons: number;
-  /** Total hours, derived from lesson durations. 0 when unknown (hidden). */
   hours: number;
   students: number;
   level: Level;
-  /** null = free (price 0 or missing). */
   price: number | null;
   badge?: string;
   color: string;
   icon: string;
   thumbnail: string | null;
+  averageRating: number | null;
 }
 
 export interface CatalogLesson {
@@ -48,17 +32,20 @@ export interface CatalogLesson {
   order: number;
   title: string;
   description: string;
-  /** Human duration, e.g. "12:30" or "1:05:00". */
   duration: string;
   durationSeconds: number;
-  /** Extracted YouTube id (for the embed), or null. */
-  youtubeId: string | null;
-  videoUrl: string | null;
+  youtubeId: null;
+  videoUrl: null;
+  videoAssetId: string | null;
   preview: boolean;
+  locked: boolean;
+  completed: boolean;
+  quizRequired: boolean;
+  quizPassed: boolean;
 }
 
 export interface CatalogSection {
-  id: number;
+  id: string;
   title: string;
   lessons: CatalogLesson[];
 }
@@ -69,36 +56,19 @@ export interface CatalogCourseDetail {
   sections: CatalogSection[];
 }
 
-// ── Fallback styling per department ──────────────────────────────────────────
 const CATEGORY_STYLE: Record<Category, { color: string; icon: string }> = {
   fiqh: { color: "from-teal-500 to-emerald-600", icon: "🕌" },
   aqida: { color: "from-indigo-500 to-purple-600", icon: "📖" },
   tazkiya: { color: "from-green-500 to-teal-600", icon: "🌿" },
 };
 
-// Generic section labels — the backend has no "section" concept, so the flat
-// lesson list is chunked into groups purely for presentation.
-const PER_SECTION = 6;
-const SECTION_TITLES = [
-  "Kirish moduli",
-  "Asosiy qism",
-  "Chuqurlashtirilgan mavzular",
-  "Amaliy mashg'ulotlar",
-  "Yakuniy modul",
-  "Qo'shimcha materiallar",
-];
-
-// ── Field mappers ────────────────────────────────────────────────────────────
-
-/** Best-effort map of a free-text category name onto the three departments. */
 function mapCategory(name?: string | null): Category {
-  const n = (name || "").toLowerCase();
-  if (n.includes("aqid") || n.includes("ақид") || n.includes("عقيد")) return "aqida";
-  if (n.includes("tazk") || n.includes("тазк") || n.includes("تزك")) return "tazkiya";
+  const normalized = (name || "").toLowerCase();
+  if (normalized.includes("aqid") || normalized.includes("عقيد")) return "aqida";
+  if (normalized.includes("tazk") || normalized.includes("تزك")) return "tazkiya";
   return "fiqh";
 }
 
-/** Department styling (icon + gradient) for a free-text category name. */
 export function styleForCategoryName(name?: string | null): {
   category: Category;
   color: string;
@@ -109,163 +79,125 @@ export function styleForCategoryName(name?: string | null): {
 }
 
 function mapLevel(level?: string | null): Level {
-  switch ((level || "").toUpperCase()) {
-    case "INTERMEDIATE":
-      return "intermediate";
-    case "ADVANCED":
-      return "advanced";
-    default:
-      return "beginner";
-  }
+  if (level === "INTERMEDIATE") return "intermediate";
+  if (level === "ADVANCED") return "advanced";
+  return "beginner";
 }
 
-function pad2(n: number): string {
-  return n < 10 ? `0${n}` : String(n);
+function pad2(value: number): string {
+  return value < 10 ? `0${value}` : String(value);
 }
 
 export function formatDuration(totalSeconds: number): string {
-  const s = Math.max(0, Math.floor(totalSeconds));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  return h > 0 ? `${h}:${pad2(m)}:${pad2(sec)}` : `${pad2(m)}:${pad2(sec)}`;
-}
-
-/** Pull an 11-char YouTube id out of a watch / short / embed URL. */
-function extractYouTubeId(url?: string | null): string | null {
-  if (!url) return null;
-  const patterns = [/[?&]v=([\w-]{11})/, /youtu\.be\/([\w-]{11})/, /embed\/([\w-]{11})/];
-  for (const p of patterns) {
-    const m = url.match(p);
-    if (m) return m[1];
-  }
-  return null;
+  const seconds = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const rest = seconds % 60;
+  return hours ? `${hours}:${pad2(minutes)}:${pad2(rest)}` : `${pad2(minutes)}:${pad2(rest)}`;
 }
 
 function hoursFromSeconds(totalSeconds: number): number {
   return totalSeconds > 0 ? Math.max(1, Math.round(totalSeconds / 3600)) : 0;
 }
 
-export function mapLesson(l: ApiLesson): CatalogLesson {
-  const seconds = l.duration ?? 0;
+export function mapLesson(lesson: ApiLesson): CatalogLesson {
+  const duration = lesson.duration ?? 0;
   return {
-    id: l.id,
-    order: l.order ?? 0,
-    title: l.title,
-    description: l.description ?? "",
-    duration: formatDuration(seconds),
-    durationSeconds: seconds,
-    youtubeId: extractYouTubeId(l.videoUrl),
-    videoUrl: l.videoUrl ?? null,
-    preview: Boolean(l.isPreview),
+    id: lesson.id,
+    order: lesson.order ?? 0,
+    title: lesson.title,
+    description: lesson.description ?? "",
+    duration: formatDuration(duration),
+    durationSeconds: duration,
+    youtubeId: null,
+    videoUrl: null,
+    videoAssetId: lesson.videoAssetId ?? null,
+    preview: Boolean(lesson.isPreview),
+    locked: Boolean(lesson.locked),
+    completed: Boolean(lesson.completed),
+    quizRequired: Boolean(lesson.quizRequired),
+    quizPassed: Boolean(lesson.quizPassed),
   };
 }
 
-export function mapCourse(c: ApiCourse): CatalogCourse {
-  const category = mapCategory(c.category?.name);
-  const style = CATEGORY_STYLE[category];
-  const lessonsArr = c.lessons ?? [];
-  const lessonCount = c._count?.lessons ?? lessonsArr.length;
-  const totalSeconds = lessonsArr.reduce((sum, l) => sum + (l.duration ?? 0), 0);
-  const instructor = c.teacher
-    ? `${c.teacher.firstName ?? ""} ${c.teacher.lastName ?? ""}`.trim()
-    : "";
+function apiLessons(course: ApiCourse): ApiLesson[] {
+  if (course.sections?.length) return course.sections.flatMap((section) => section.lessons ?? []);
+  return course.lessons ?? [];
+}
 
+export function mapCourse(course: ApiCourse): CatalogCourse {
+  const category = mapCategory(course.category?.name);
+  const style = CATEGORY_STYLE[category];
+  const lessons = apiLessons(course);
+  const totalSeconds = lessons.reduce((sum, lesson) => sum + (lesson.duration ?? 0), 0);
+  const instructor = course.teacher
+    ? `${course.teacher.firstName ?? ""} ${course.teacher.lastName ?? ""}`.trim()
+    : "";
   return {
-    id: c.id,
-    title: c.title,
+    id: course.id,
+    title: course.title,
     arabicTitle: "",
-    description: c.description ?? "",
+    description: course.description ?? "",
     instructor,
     category,
-    categoryId: c.category?.id ?? c.categoryId ?? null,
-    categoryName: c.category?.name ?? "",
-    lessons: lessonCount,
+    categoryId: course.category?.id ?? course.categoryId ?? null,
+    categoryName: course.category?.name ?? "",
+    lessons: course.lessonCount ?? course._count?.lessons ?? lessons.length,
     hours: hoursFromSeconds(totalSeconds),
-    students: c._count?.enrollments ?? 0,
-    level: mapLevel(c.level),
-    price: !c.price ? null : c.price,
+    students: course.enrollmentCount ?? course._count?.enrollments ?? 0,
+    level: mapLevel(course.level),
+    price: !course.price ? null : course.price,
     color: style.color,
     icon: style.icon,
-    thumbnail: c.thumbnail ?? null,
+    thumbnail: course.thumbnail ?? null,
+    averageRating: course.averageRating ?? null,
   };
 }
 
-/** Chunk a flat, ordered lesson list into presentation sections. */
 export function groupIntoSections(lessons: CatalogLesson[]): CatalogSection[] {
-  const sorted = [...lessons].sort((a, b) => a.order - b.order);
-  const sections: CatalogSection[] = [];
-  for (let i = 0; i < sorted.length; i += PER_SECTION) {
-    sections.push({
-      id: sections.length + 1,
-      title: SECTION_TITLES[sections.length % SECTION_TITLES.length],
-      lessons: sorted.slice(i, i + PER_SECTION),
-    });
-  }
-  return sections;
+  return [{ id: "main", title: "Kurs darslari", lessons: [...lessons].sort((a, b) => a.order - b.order) }];
 }
 
-/** Previous / next lesson (by order) for player navigation. */
 export function getAdjacent(
   lessons: CatalogLesson[],
-  id: string
+  id: string,
 ): { prev?: CatalogLesson; next?: CatalogLesson } {
-  const sorted = [...lessons].sort((a, b) => a.order - b.order);
-  const i = sorted.findIndex((l) => l.id === id);
-  if (i === -1) return {};
-  return { prev: sorted[i - 1], next: sorted[i + 1] };
+  const index = lessons.findIndex((lesson) => lesson.id === id);
+  if (index === -1) return {};
+  return { prev: lessons[index - 1], next: lessons[index + 1] };
 }
 
-// ── API calls ────────────────────────────────────────────────────────────────
-
-/** Published courses for the public grid. Throws on network failure. */
 export async function fetchPublishedCourses(): Promise<CatalogCourse[]> {
   const { data } = await api.get<ApiCourse[]>("/courses");
   return (data ?? []).map(mapCourse);
 }
 
-/**
- * A single course with its lessons and presentation sections.
- * Returns `null` when the course doesn't exist or the request fails.
- */
-export async function fetchCourseDetail(
-  id: string
-): Promise<CatalogCourseDetail | null> {
+export async function fetchCourseDetail(id: string): Promise<CatalogCourseDetail | null> {
   try {
     const { data } = await api.get<ApiCourse>(`/courses/${id}`);
     if (!data) return null;
-
-    // The detail endpoint usually embeds lessons; fall back to the dedicated
-    // lessons endpoint if it doesn't.
-    let apiLessons = data.lessons ?? [];
-    if (apiLessons.length === 0) {
-      try {
-        const res = await api.get<ApiLesson[]>(`/courses/${id}/lessons`);
-        apiLessons = res.data ?? [];
-      } catch {
-        // Leave lessons empty — the course still renders.
-      }
+    let sections: CatalogSection[] = [...(data.sections ?? [])]
+      .sort((left, right) => left.order - right.order)
+      .map((section) => ({
+        id: section.id,
+        title: section.title,
+        lessons: (section.lessons ?? []).map(mapLesson).sort((a, b) => a.order - b.order),
+      }));
+    if (!sections.length) {
+      const response = await api.get<ApiLesson[]>(`/courses/${id}/lessons`);
+      sections = groupIntoSections((response.data ?? []).map(mapLesson));
     }
-
-    const lessons = apiLessons.map(mapLesson).sort((a, b) => a.order - b.order);
+    const lessons = sections.flatMap((section) => section.lessons);
     const course = mapCourse(data);
-
-    // Recompute counts/hours from the real lessons we resolved.
-    const totalSeconds = lessons.reduce((s, l) => s + l.durationSeconds, 0);
-    if (lessons.length) course.lessons = lessons.length;
-    if (totalSeconds > 0) course.hours = hoursFromSeconds(totalSeconds);
-
-    return { course, lessons, sections: groupIntoSections(lessons) };
+    const totalSeconds = lessons.reduce((sum, lesson) => sum + lesson.durationSeconds, 0);
+    course.lessons = lessons.length;
+    course.hours = hoursFromSeconds(totalSeconds);
+    return { course, lessons, sections };
   } catch {
     return null;
   }
 }
 
-/**
- * A single lesson by id (`GET /lessons/:id`). This is the source of truth for
- * the playable `videoUrl` — the course detail list may omit it. Returns `null`
- * when the lesson doesn't exist or the request fails.
- */
 export async function fetchLesson(id: string): Promise<CatalogLesson | null> {
   try {
     const { data } = await api.get<ApiLesson>(`/lessons/${id}`);
