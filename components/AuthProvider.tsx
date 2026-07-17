@@ -2,10 +2,10 @@
 
 import {
   createContext,
-  useContext,
-  useState,
-  useEffect,
   useCallback,
+  useContext,
+  useEffect,
+  useState,
   type ReactNode,
 } from "react";
 import * as auth from "@/lib/auth";
@@ -13,7 +13,6 @@ import type { AuthUser, LoginPayload, RegisterPayload } from "@/lib/auth";
 
 interface AuthContextValue {
   user: AuthUser | null;
-  /** True while the initial session check (/users/me) is in flight. */
   loading: boolean;
   isAuthenticated: boolean;
   login: (payload: LoginPayload) => Promise<AuthUser>;
@@ -29,35 +28,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Show the cached user immediately, then revalidate against the server.
-    const stored = auth.getStoredUser();
-    if (stored) setUser(stored);
+    const handleCleared = () => setUser(null);
+    window.addEventListener(auth.AUTH_CLEARED_EVENT, handleCleared);
+    return () => window.removeEventListener(auth.AUTH_CLEARED_EVENT, handleCleared);
+  }, []);
 
-    if (!auth.getAccessToken()) {
-      setLoading(false);
-      return;
+  useEffect(() => {
+    let active = true;
+    const cached = auth.getStoredUser();
+    if (cached) setUser(cached);
+
+    async function restoreSession() {
+      try {
+        let accessToken = auth.getAccessToken();
+        if (!accessToken && auth.getRefreshToken()) {
+          accessToken = await auth.refreshTokens();
+        }
+        if (!accessToken) {
+          if (active) setUser(null);
+          return;
+        }
+        const current = await auth.getMe();
+        if (active) setUser(current);
+      } catch {
+        auth.clearSession();
+        if (active) setUser(null);
+      } finally {
+        if (active) setLoading(false);
+      }
     }
 
-    auth
-      .getMe()
-      .then((u) => setUser(u))
-      .catch(() => {
-        auth.clearSession();
-        setUser(null);
-      })
-      .finally(() => setLoading(false));
+    restoreSession();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const login = useCallback(async (payload: LoginPayload) => {
-    const res = await auth.login(payload);
-    setUser(res.user);
-    return res.user;
+    const response = await auth.login(payload);
+    setUser(response.user);
+    return response.user;
   }, []);
 
   const register = useCallback(async (payload: RegisterPayload) => {
-    const res = await auth.register(payload);
-    setUser(res.user);
-    return res.user;
+    const response = await auth.register(payload);
+    setUser(response.user);
+    return response.user;
   }, []);
 
   const logout = useCallback(async () => {
@@ -66,11 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshUser = useCallback(async () => {
-    try {
-      setUser(await auth.getMe());
-    } catch {
-      /* keep current user on transient failure */
-    }
+    const current = await auth.getMe();
+    setUser(current);
   }, []);
 
   return (
@@ -78,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         loading,
-        isAuthenticated: !!user,
+        isAuthenticated: Boolean(user),
         login,
         register,
         logout,
@@ -91,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
-  return ctx;
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be used within AuthProvider");
+  return context;
 }
