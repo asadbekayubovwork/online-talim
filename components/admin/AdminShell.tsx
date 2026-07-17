@@ -9,6 +9,15 @@ interface NavItem {
   href: string;
   label: string;
   icon: ReactNode;
+  adminOnly?: boolean;
+}
+
+function Icon({ path }: { path: string }) {
+  return (
+    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={path} />
+    </svg>
+  );
 }
 
 export default function AdminShell({
@@ -21,65 +30,104 @@ export default function AdminShell({
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-
   const isAdmin = user?.role === "ADMIN";
+  const isInstructor = user?.role === "INSTRUCTOR";
+  const isStaff = isAdmin || isInstructor;
+  const base = `/${locale}/admin`;
+  const adminOnlyPath =
+    pathname === base ||
+    pathname.startsWith(`${base}/users`) ||
+    pathname.startsWith(`${base}/categories`) ||
+    pathname.startsWith(`${base}/reviews`);
 
-  // Guard: ADMIN bo'lmaganlarni login sahifasiga yo'naltiramiz.
   useEffect(() => {
     if (loading) return;
     if (!user) {
       router.replace(`/${locale}/login`);
-    } else if (!isAdmin) {
-      router.replace(`/${locale}`);
+      return;
     }
-  }, [loading, user, isAdmin, locale, router]);
+    if (!isStaff) {
+      router.replace(`/${locale}`);
+      return;
+    }
+    if (isInstructor && adminOnlyPath) {
+      router.replace(`${base}/courses`);
+    }
+  }, [loading, user, isStaff, isInstructor, adminOnlyPath, base, locale, router]);
 
-  if (loading || !user || !isAdmin) {
+  if (loading || !user || !isStaff || (isInstructor && adminOnlyPath)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center gap-3 text-gray-500">
-          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm">Yuklanmoqda...</p>
+      <div className="grid min-h-screen place-items-center bg-slate-50">
+        <div className="flex items-center gap-3 text-sm text-slate-500">
+          <span className="h-6 w-6 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" />
+          Boshqaruv paneli yuklanmoqda…
         </div>
       </div>
     );
   }
 
-  const base = `/${locale}/admin`;
   const nav: NavItem[] = [
-    { href: base, label: "Dashboard", icon: <IconHome /> },
-    { href: `${base}/users`, label: "Foydalanuvchilar", icon: <IconUsers /> },
-    { href: `${base}/courses`, label: "Kurslar", icon: <IconBook /> },
-    { href: `${base}/categories`, label: "Yo'nalishlar", icon: <IconTag /> },
-  ];
+    {
+      href: base,
+      label: "Dashboard",
+      adminOnly: true,
+      icon: <Icon path="M3 12l9-9 9 9M5 10v10h14V10M9 20v-6h6v6" />,
+    },
+    {
+      href: `${base}/users`,
+      label: "Foydalanuvchilar",
+      adminOnly: true,
+      icon: <Icon path="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2m7-10a4 4 0 100-8 4 4 0 000 8zm13 10v-2a4 4 0 00-3-3.87m-1-7.13a4 4 0 010 7.75" />,
+    },
+    {
+      href: `${base}/courses`,
+      label: "Kurslar",
+      icon: <Icon path="M4 19.5A2.5 2.5 0 016.5 17H20M4 4.5A2.5 2.5 0 016.5 2H20v15H6.5A2.5 2.5 0 004 19.5v-15z" />,
+    },
+    {
+      href: `${base}/categories`,
+      label: "Yo‘nalishlar",
+      adminOnly: true,
+      icon: <Icon path="M7 7h.01M3 4a1 1 0 011-1h5a2 2 0 011.414.586l9 9a2 2 0 010 2.828l-4 4a2 2 0 01-2.828 0l-9-9A2 2 0 013 9V4z" />,
+    },
+    {
+      href: `${base}/reviews`,
+      label: "Review va baholar",
+      adminOnly: true,
+      icon: <Icon path="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81H7.03a1 1 0 00.95-.69l1.07-3.292z" />,
+    },
+  ].filter((item) => isAdmin || !item.adminOnly);
 
-  const isActive = (href: string) =>
-    href === base ? pathname === base : pathname.startsWith(href);
+  function active(href: string) {
+    return href === base ? pathname === base : pathname.startsWith(href);
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-60 shrink-0 bg-white border-r border-gray-100 flex flex-col fixed inset-y-0 left-0">
-        <div className="px-5 py-5 border-b border-gray-100">
-          <Link href={`/${locale}`} className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
+    <div className="min-h-screen bg-slate-50">
+      <aside className="fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-slate-200 bg-white">
+        <div className="border-b border-slate-100 px-5 py-5">
+          <Link href={`/${locale}`} className="flex items-center gap-3">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-600 text-white shadow-sm">
+              <Icon path="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </span>
+            <div>
+              <p className="font-bold text-slate-950">Boshqaruv paneli</p>
+              <p className="text-xs text-slate-400">
+                {isAdmin ? "Administrator" : "O‘qituvchi"}
+              </p>
             </div>
-            <span className="font-bold text-gray-900 text-sm">Admin panel</span>
           </Link>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
           {nav.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                isActive(item.href)
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                active(item.href)
                   ? "bg-blue-50 text-blue-700"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
               }`}
             >
               {item.icon}
@@ -88,67 +136,29 @@ export default function AdminShell({
           ))}
         </nav>
 
-        <div className="px-3 py-4 border-t border-gray-100">
-          <div className="px-3 mb-2">
-            <p className="text-sm font-semibold text-gray-900 truncate">
+        <div className="border-t border-slate-100 p-3">
+          <Link href={`/${locale}/profile`} className="mb-2 block rounded-xl px-3 py-2.5 hover:bg-slate-50">
+            <p className="truncate text-sm font-semibold text-slate-900">
               {user.firstName} {user.lastName}
             </p>
-            <p className="text-xs text-gray-400 truncate">@{user.username}</p>
-          </div>
+            <p className="mt-0.5 truncate text-xs text-slate-400">@{user.username}</p>
+          </Link>
           <button
+            type="button"
             onClick={async () => {
               await logout();
               router.replace(`/${locale}/login`);
             }}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
           >
-            <IconLogout />
+            <Icon path="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             Chiqish
           </button>
         </div>
       </aside>
-
-      {/* Content */}
-      <main className="flex-1 ml-60 min-w-0">
-        <div className="max-w-6xl mx-auto px-6 py-8">{children}</div>
+      <main className="ml-64 min-w-0">
+        <div className="mx-auto max-w-7xl px-6 py-8">{children}</div>
       </main>
     </div>
-  );
-}
-
-// ── Icons ─────────────────────────────────────────────────────────────────────
-function IconHome() {
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-    </svg>
-  );
-}
-function IconUsers() {
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-3-6.65" />
-    </svg>
-  );
-}
-function IconBook() {
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-    </svg>
-  );
-}
-function IconTag() {
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5a1.99 1.99 0 011.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 9V4a1 1 0 011-1z" />
-    </svg>
-  );
-}
-function IconLogout() {
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-    </svg>
   );
 }
