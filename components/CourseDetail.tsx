@@ -1,125 +1,92 @@
 "use client";
 
-import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Footer from "@/components/Footer";
+import Header from "@/components/Header";
+import { useAuth } from "@/components/AuthProvider";
+import CourseReviews from "@/components/course/CourseReviews";
+import { getApiErrorMessage } from "@/lib/auth";
 import {
   fetchCourseDetail,
   type CatalogCourseDetail,
-  type Level,
 } from "@/lib/catalog";
 import { enroll, getCourseEnrollment } from "@/lib/enrollments";
-import { getApiErrorMessage } from "@/lib/auth";
-import { useAuth } from "@/components/AuthProvider";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import CourseCurriculum from "@/components/CourseCurriculum";
-import JsonLd from "@/components/JsonLd";
-import { courseSchema } from "@/lib/structured-data";
-import type { Locale } from "@/i18n/routing";
 
-const levelColors: Record<Level, string> = {
-  beginner: "bg-emerald-100 text-emerald-700",
-  intermediate: "bg-blue-100 text-blue-700",
-  advanced: "bg-purple-100 text-purple-700",
-};
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat("uz-UZ").format(value);
+}
 
-const formatNumber = (n: number) =>
-  n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-
-export default function CourseDetail({
-  locale,
-  id,
-}: {
-  locale: string;
-  id: string;
-}) {
-  const t = useTranslations("courseDetail");
-  const tc = useTranslations("coursesSection");
-
+export default function CourseDetail({ locale, id }: { locale: string; id: string }) {
   const router = useRouter();
-  const { isAuthenticated, loading: authLoading } = useAuth();
-
+  const { user, loading: authLoading } = useAuth();
   const [data, setData] = useState<CatalogCourseDetail | null>(null);
-  const [status, setStatus] = useState<"loading" | "ready" | "notfound">("loading");
   const [enrolled, setEnrolled] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
-  const [enrollError, setEnrollError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [rating, setRating] = useState<number | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    let active = true;
     fetchCourseDetail(id)
-      .then((res) => {
-        if (cancelled) return;
-        if (!res) {
-          setStatus("notfound");
-          return;
-        }
-        setData(res);
-        setStatus("ready");
+      .then((response) => {
+        if (!active) return;
+        setData(response);
+        setRating(response?.course.averageRating ?? null);
       })
-      .catch(() => {
-        if (!cancelled) setStatus("notfound");
-      });
+      .catch((reason) => active && setError(getApiErrorMessage(reason, "Kursni yuklab bo‘lmadi")))
+      .finally(() => active && setLoading(false));
     return () => {
-      cancelled = true;
+      active = false;
     };
   }, [id]);
 
-  // Resolve whether the current user is already enrolled (controls the CTA).
   useEffect(() => {
-    if (authLoading || !isAuthenticated) return;
-    let cancelled = false;
-    getCourseEnrollment(id).then((res) => {
-      if (!cancelled && res?.enrolled) setEnrolled(true);
+    if (authLoading || !user) {
+      setEnrolled(false);
+      return;
+    }
+    let active = true;
+    getCourseEnrollment(id).then((summary) => {
+      if (active) setEnrolled(Boolean(summary?.enrolled));
     });
     return () => {
-      cancelled = true;
+      active = false;
     };
-  }, [authLoading, isAuthenticated, id]);
+  }, [authLoading, user, id]);
 
-  const handleEnroll = async () => {
-    if (!isAuthenticated) {
+  async function handleEnroll() {
+    if (!user) {
       router.push(`/${locale}/login`);
       return;
     }
     setEnrolling(true);
-    setEnrollError(null);
+    setError(null);
     try {
       await enroll(id);
       setEnrolled(true);
-    } catch (err) {
-      const code = (err as { response?: { status?: number } })?.response?.status;
-      if (code === 409) {
-        setEnrolled(true); // already enrolled → just switch the CTA
-      } else {
-        setEnrollError(getApiErrorMessage(err, t("enrollError")));
-      }
+    } catch (reason) {
+      const status = (reason as { response?: { status?: number } }).response?.status;
+      if (status === 409) setEnrolled(true);
+      else setError(getApiErrorMessage(reason, "Kursga yozilib bo‘lmadi"));
     } finally {
       setEnrolling(false);
     }
-  };
+  }
 
-  if (status === "loading") {
+  if (loading) {
     return (
       <>
         <Header />
-        <main className="bg-gray-50 min-h-screen">
-          <div className="bg-slate-900 pt-24 pb-10">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 animate-pulse space-y-4">
-              <div className="h-4 w-32 bg-slate-700 rounded" />
-              <div className="h-9 w-2/3 bg-slate-700 rounded" />
-              <div className="h-4 w-1/2 bg-slate-800 rounded" />
-            </div>
-          </div>
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 animate-pulse">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-4">
-                <div className="h-6 w-1/3 bg-gray-200 rounded" />
-                <div className="h-40 bg-gray-200 rounded-2xl" />
-              </div>
-              <div className="h-72 bg-gray-200 rounded-2xl" />
+        <main className="min-h-screen bg-slate-50 pt-24">
+          <div className="mx-auto max-w-6xl animate-pulse px-4 py-12 sm:px-6">
+            <div className="h-10 w-2/3 rounded bg-slate-200" />
+            <div className="mt-4 h-5 w-1/2 rounded bg-slate-200" />
+            <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_340px]">
+              <div className="h-80 rounded-2xl bg-slate-200" />
+              <div className="h-72 rounded-2xl bg-slate-200" />
             </div>
           </div>
         </main>
@@ -128,20 +95,14 @@ export default function CourseDetail({
     );
   }
 
-  if (status === "notfound" || !data) {
+  if (!data) {
     return (
       <>
         <Header />
-        <main className="bg-gray-50 min-h-screen flex items-center justify-center pt-16">
-          <div className="text-center px-4 py-24">
-            <p className="text-2xl font-bold text-gray-900 mb-3">{t("notFoundTitle")}</p>
-            <p className="text-gray-500 mb-6">{t("notFoundText")}</p>
-            <Link
-              href={`/${locale}/courses`}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition-colors"
-            >
-              {t("backToCourses")}
-            </Link>
+        <main className="grid min-h-screen place-items-center bg-slate-50 px-4 pt-16 text-center">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-950">Kurs topilmadi</h1>
+            <Link href={`/${locale}/courses`} className="mt-5 inline-flex rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white">Kurslarga qaytish</Link>
           </div>
         </main>
         <Footer />
@@ -150,205 +111,108 @@ export default function CourseDetail({
   }
 
   const { course, sections, lessons } = data;
-  const typedLocale = locale as Locale;
-  const learnPoints = t.raw("whatYouLearn") as string[];
-  const firstLessonId = lessons[0]?.id;
-  const previewLesson = lessons.find((l) => l.preview) ?? lessons[0];
+  const firstAvailableLesson = lessons.find((lesson) => !lesson.locked) ?? lessons[0];
+  const previewLesson = lessons.find((lesson) => lesson.preview && !lesson.locked);
 
   return (
     <>
-      <JsonLd data={courseSchema(typedLocale, course)} />
       <Header />
-      <main className="bg-gray-50 min-h-screen">
-        {/* Hero band */}
-        <div className="bg-slate-900 text-white pt-24 pb-10">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <Link
-              href={`/${locale}/courses`}
-              className="inline-flex items-center gap-1.5 text-sm text-slate-300 hover:text-white transition-colors mb-6"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              {t("backToCourses")}
-            </Link>
-
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-600/90 text-white">
-                {tc(`categories.${course.category}`)}
-              </span>
-              <span className={`text-xs font-semibold px-3 py-1 rounded-full ${levelColors[course.level]}`}>
-                {tc(`level.${course.level}`)}
-              </span>
-              {course.badge && (
-                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-amber-500/90 text-white">
-                  {course.badge}
-                </span>
-              )}
-            </div>
-
-            <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight mb-2 max-w-3xl">
-              {course.title}
-            </h1>
-            {course.arabicTitle && (
-              <p className="text-xl text-slate-400 mb-4" dir="rtl">{course.arabicTitle}</p>
-            )}
-            <p className="text-slate-300 text-base leading-relaxed max-w-2xl mb-6">
-              {course.description}
-            </p>
-
-            {/* Meta row */}
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-300">
-              <span className="flex items-center gap-1.5">
-                <svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-                4.9 <span className="text-slate-500">{t("rating")}</span>
-              </span>
-              <span>{course.lessons} {t("lessons")}</span>
-              {course.hours > 0 && <span>{course.hours} {t("hours")}</span>}
-              {course.students > 0 && (
-                <span>{formatNumber(course.students)} {t("students")}</span>
-              )}
-            </div>
-
-            {/* Instructor */}
-            {course.instructor && (
-              <div className="flex items-center gap-3 mt-6">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-sm font-bold">
-                  {course.instructor[0]}
+      <main className="min-h-screen bg-slate-50">
+        <section className="bg-slate-950 pb-12 pt-28 text-white">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+            <Link href={`/${locale}/courses`} className="text-sm text-slate-300 hover:text-white">← Barcha kurslar</Link>
+            <div className="mt-7 grid items-start gap-8 lg:grid-cols-[1fr_340px]">
+              <div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="rounded-full bg-blue-600/20 px-3 py-1 text-xs font-semibold text-blue-200">{course.categoryName || "Kurs"}</span>
+                  <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-slate-200">{course.level === "beginner" ? "Boshlang‘ich" : course.level === "intermediate" ? "O‘rta" : "Yuqori"}</span>
                 </div>
-                <div>
-                  <p className="text-xs text-slate-400">{t("instructor")}</p>
-                  <p className="text-sm font-semibold text-white">{course.instructor}</p>
+                <h1 className="mt-5 max-w-4xl text-3xl font-extrabold tracking-tight sm:text-4xl">{course.title}</h1>
+                <p className="mt-5 max-w-3xl text-base leading-8 text-slate-300">{course.description}</p>
+                <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm text-slate-300">
+                  {rating !== null && <span className="font-semibold text-amber-300">★ {rating.toFixed(1)}</span>}
+                  <span>{course.lessons} ta dars</span>
+                  {course.hours > 0 && <span>{course.hours} soat</span>}
+                  <span>{formatNumber(course.students)} talaba</span>
+                  {course.instructor && <span>Ustoz: {course.instructor}</span>}
                 </div>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Body */}
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left column */}
-            <div className="lg:col-span-2 space-y-10">
-              {/* What you'll learn */}
-              <section>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">{t("whatYouLearnTitle")}</h2>
-                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {learnPoints.map((point, i) => (
-                    <li key={i} className="flex items-start gap-2.5 text-sm text-gray-700">
-                      <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      {point}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
-              {/* About */}
-              <section>
-                <h2 className="text-xl font-bold text-gray-900 mb-3">{t("aboutTitle")}</h2>
-                <p className="text-gray-600 text-sm leading-relaxed">{course.description}</p>
-              </section>
-
-              {/* Curriculum */}
-              {sections.length > 0 && (
-                <section>
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">{t("curriculumTitle")}</h2>
-                  <p className="text-sm text-gray-400 mb-4">
-                    {t("curriculumSummary", {
-                      sections: sections.length,
-                      lessons: course.lessons,
-                      hours: course.hours,
-                    })}
-                  </p>
-                  <CourseCurriculum
-                    sections={sections}
-                    locale={locale}
-                    courseId={course.id}
-                    completedLessons={0}
-                  />
-                </section>
-              )}
-            </div>
-
-            {/* Right column — sticky enroll card */}
-            <aside className="lg:col-span-1">
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 lg:sticky lg:top-24">
-                <div className="flex items-baseline gap-2 mb-5">
-                  <span className="text-3xl font-extrabold text-gray-900">
-                    {course.price === null ? t("free") : `${formatNumber(course.price)} so'm`}
-                  </span>
-                </div>
-
-                {enrolled ? (
-                  firstLessonId && (
-                    <Link
-                      href={`/${locale}/courses/${course.id}/lessons/${firstLessonId}`}
-                      className="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors mb-3"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {t("continueCourse")}
-                    </Link>
-                  )
+              <div className="rounded-2xl border border-white/10 bg-white p-6 text-slate-950 shadow-2xl">
+                <p className="text-sm font-medium text-slate-500">Kurs narxi</p>
+                <p className="mt-2 text-3xl font-extrabold">{course.price === null ? "Bepul" : `${formatNumber(course.price)} so‘m`}</p>
+                {enrolled && firstAvailableLesson ? (
+                  <Link href={`/${locale}/courses/${course.id}/lessons/${firstAvailableLesson.id}`} className="mt-6 flex w-full items-center justify-center rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700">O‘qishni davom ettirish</Link>
                 ) : (
-                  <button
-                    onClick={handleEnroll}
-                    disabled={enrolling}
-                    className="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors mb-3 cursor-pointer"
-                  >
-                    {enrolling ? t("enrolling") : t("enroll")}
-                  </button>
+                  <button type="button" onClick={handleEnroll} disabled={enrolling} className="mt-6 w-full rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-60">{enrolling ? "Yozilmoqda…" : course.price === null ? "Kursga yozilish" : "Kursni olish"}</button>
                 )}
-
-                {enrollError && (
-                  <p className="text-red-600 text-sm text-center mb-3">{enrollError}</p>
+                {previewLesson && !enrolled && (
+                  <Link href={`/${locale}/courses/${course.id}/lessons/${previewLesson.id}`} className="mt-3 flex w-full items-center justify-center rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">Bepul darsni ko‘rish</Link>
                 )}
+              </div>
+            </div>
+          </div>
+        </section>
 
-                {previewLesson && (
-                  <Link
-                    href={`/${locale}/courses/${course.id}/lessons/${previewLesson.id}`}
-                    className="block text-center w-full py-2.5 text-sm font-semibold text-blue-600 hover:text-blue-700 mb-6"
-                  >
-                    {t("preview")}
-                  </Link>
-                )}
+        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_340px]">
+          <div className="space-y-10">
+            {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">{t("includesTitle")}</h3>
-                <ul className="space-y-2.5 text-sm text-gray-600">
-                  {[
-                    { icon: "video", label: t("includesVideo", { hours: course.hours }) },
-                    { icon: "infinity", label: t("includesLifetime") },
-                    { icon: "device", label: t("includesMobile") },
-                    { icon: "badge", label: t("includesCertificate") },
-                  ].map((item) => (
-                    <li key={item.icon} className="flex items-center gap-2.5">
-                      <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      {item.label}
-                    </li>
-                  ))}
-                </ul>
+            <section>
+              <h2 className="text-xl font-bold text-slate-950">Kurs haqida</h2>
+              <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-600">{course.description}</p>
+            </section>
 
-                <div className="border-t border-gray-100 mt-6 pt-4 space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">{t("level")}</span>
-                    <span className="text-gray-700 font-medium">{tc(`level.${course.level}`)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">{t("language")}</span>
-                    <span className="text-gray-700 font-medium">{t("languageValue")}</span>
-                  </div>
+            <section>
+              <div className="mb-5 flex items-end justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-950">Kurs dasturi</h2>
+                  <p className="mt-1 text-sm text-slate-500">{sections.length} ta bo‘lim · {lessons.length} ta dars</p>
                 </div>
               </div>
-            </aside>
+              <div className="space-y-4">
+                {sections.map((section, sectionIndex) => (
+                  <article key={section.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <div className="border-b border-slate-100 bg-slate-50 px-5 py-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">{sectionIndex + 1}-bo‘lim</p>
+                      <h3 className="mt-1 font-bold text-slate-950">{section.title}</h3>
+                    </div>
+                    <div className="divide-y divide-slate-100">
+                      {section.lessons.map((lesson, lessonIndex) => {
+                        const accessible = !lesson.locked && (enrolled || lesson.preview);
+                        return accessible ? (
+                          <Link key={lesson.id} href={`/${locale}/courses/${course.id}/lessons/${lesson.id}`} className="flex items-center gap-4 px-5 py-4 text-sm hover:bg-blue-50/40">
+                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 font-semibold text-slate-600">{lessonIndex + 1}</span>
+                            <span className="min-w-0 flex-1 font-medium text-slate-800">{lesson.title}</span>
+                            <span className="shrink-0 text-xs text-slate-400">{lesson.preview ? "Bepul" : lesson.completed ? "✓ Yakunlangan" : lesson.duration}</span>
+                          </Link>
+                        ) : (
+                          <div key={lesson.id} className="flex items-center gap-4 px-5 py-4 text-sm text-slate-400">
+                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100">🔒</span>
+                            <span className="min-w-0 flex-1 font-medium">{lesson.title}</span>
+                            <span className="shrink-0 text-xs">Yopiq</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <CourseReviews courseId={course.id} canReview={enrolled} onAverageChange={(value) => value > 0 && setRating(value)} />
           </div>
+
+          <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:sticky lg:top-24">
+            <h2 className="font-bold text-slate-950">Kurs tarkibiga kiradi</h2>
+            <ul className="mt-4 space-y-3 text-sm text-slate-600">
+              <li>✓ {lessons.length} ta tartibli dars</li>
+              <li>✓ Himoyalangan video materiallar</li>
+              <li>✓ Yuklanadigan qo‘shimcha fayllar</li>
+              <li>✓ Bilimni tekshiruvchi testlar</li>
+              <li>✓ Avtomatik progress va keyingi dars nazorati</li>
+            </ul>
+          </aside>
         </div>
       </main>
       <Footer />
