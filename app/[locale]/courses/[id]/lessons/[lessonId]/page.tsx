@@ -1,414 +1,241 @@
 "use client";
 
-import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { use, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import LessonAssessment from "@/components/learning/LessonAssessment";
+import SecureVideo from "@/components/learning/SecureVideo";
+import { getApiErrorMessage } from "@/lib/auth";
 import {
   fetchCourseDetail,
-  fetchLesson,
   getAdjacent,
   type CatalogCourseDetail,
-  type CatalogLesson,
 } from "@/lib/catalog";
-import { getCourseEnrollment, saveLessonProgress } from "@/lib/enrollments";
-import { useAuth } from "@/components/AuthProvider";
+import { getCourseEnrollment } from "@/lib/enrollments";
+import { saveProtectedProgress } from "@/lib/learning";
 
 export default function LessonPlayerPage({
   params,
 }: {
   params: Promise<{ locale: string; id: string; lessonId: string }>;
 }) {
-  const { locale, id, lessonId } = use(params);
-  const t = useTranslations("lesson");
-  const { isAuthenticated, loading: authLoading } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
+  const { locale, id: courseId, lessonId } = use(params);
+  const { user, loading: authLoading } = useAuth();
   const [data, setData] = useState<CatalogCourseDetail | null>(null);
-  const [status, setStatus] = useState<"loading" | "ready" | "notfound">("loading");
-  // The current lesson fetched directly (`GET /lessons/:id`) — the reliable
-  // source for the playable videoUrl.
-  const [currentLesson, setCurrentLesson] = useState<CatalogLesson | null>(null);
   const [enrolled, setEnrolled] = useState(false);
-  const [completedCount, setCompletedCount] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [marking, setMarking] = useState(false);
-  // Throttle watch-time saves: remember the video position (seconds) we last
-  // persisted, and only save again after it advances by >= 15s.
-  const lastSavedSecRef = useRef(-Infinity);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadCourse = useCallback(async () => {
+    const response = await fetchCourseDetail(courseId);
+    setData(response);
+  }, [courseId]);
 
   useEffect(() => {
-    let cancelled = false;
-    fetchCourseDetail(id)
-      .then((res) => {
-        if (cancelled) return;
-        if (!res) {
-          setStatus("notfound");
-          return;
-        }
-        setData(res);
-        setStatus("ready");
+    let active = true;
+    setLoading(true);
+    fetchCourseDetail(courseId)
+      .then((response) => {
+        if (active) setData(response);
       })
-      .catch(() => {
-        if (!cancelled) setStatus("notfound");
+      .catch((reason) => {
+        if (active) setError(getApiErrorMessage(reason, "Kursni yuklab bo‘lmadi"));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
       });
     return () => {
-      cancelled = true;
+      active = false;
     };
-  }, [id]);
+  }, [courseId]);
 
-  // Fetch the lesson directly so we always have its videoUrl, even if the
-  // course detail list omits it.
   useEffect(() => {
-    let cancelled = false;
-    fetchLesson(lessonId).then((l) => {
-      if (!cancelled) setCurrentLesson(l);
+    if (authLoading || !user) {
+      setEnrolled(false);
+      return;
+    }
+    let active = true;
+    getCourseEnrollment(courseId).then((summary) => {
+      if (active) setEnrolled(Boolean(summary?.enrolled));
     });
     return () => {
-      cancelled = true;
+      active = false;
     };
-  }, [lessonId]);
+  }, [authLoading, user, courseId]);
 
-  // Resolve enrollment + how many lessons are already completed.
-  useEffect(() => {
-    if (authLoading || !isAuthenticated) return;
-    let cancelled = false;
-    getCourseEnrollment(id).then((res) => {
-      if (cancelled || !res) return;
-      setEnrolled(res.enrolled);
-      setCompletedCount(res.completedLessons);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [authLoading, isAuthenticated, id]);
-
-  if (status === "loading") {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="flex items-center gap-3 text-gray-500">
-          <svg className="w-6 h-6 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          {t("loading")}
-        </div>
+      <div className="grid min-h-screen place-items-center bg-slate-950 text-sm text-slate-300">
+        <span className="inline-flex items-center gap-3">
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+          Dars yuklanmoqda…
+        </span>
       </div>
     );
   }
 
   const course = data?.course;
-  const lessons = data?.lessons ?? [];
-  const sections = data?.sections ?? [];
-  // Prefer the directly-fetched lesson (has videoUrl); fall back to the list
-  // entry. Guard against a stale fetch from a previous lessonId.
-  const listLesson = lessons.find((l) => l.id === lessonId);
-  const lesson =
-    currentLesson && currentLesson.id === lessonId ? currentLesson : listLesson;
+  const lesson = data?.lessons.find((item) => item.id === lessonId);
 
-  if (status === "notfound" || !course || !lesson) {
+  if (!course || !lesson) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
-        <div className="text-center">
-          <p className="text-xl font-bold text-gray-900 mb-3">{t("notFound")}</p>
-          <Link
-            href={`/${locale}/courses${course ? `/${course.id}` : ""}`}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition-colors"
-          >
-            {t("backToCourse")}
+      <div className="grid min-h-screen place-items-center bg-slate-50 px-4 text-center">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-950">Dars topilmadi</h1>
+          <Link href={`/${locale}/courses/${courseId}`} className="mt-5 inline-flex rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white">
+            Kursga qaytish
           </Link>
         </div>
       </div>
     );
   }
 
-  const total = lessons.length;
-  const completed = completedCount;
-  const { prev, next } = getAdjacent(lessons, lesson.id);
-  const isDone = lesson.order <= completedCount;
-  const canWatch = enrolled || lesson.preview;
+  const { prev, next } = getAdjacent(data.lessons, lesson.id);
+  const canWatch = !lesson.locked && (enrolled || lesson.preview);
+  const completedCount = data.lessons.filter((item) => item.completed).length;
+  const progressPercent = data.lessons.length
+    ? Math.round((completedCount / data.lessons.length) * 100)
+    : 0;
 
-  const lessonHref = (lid: string) =>
-    `/${locale}/courses/${course.id}/lessons/${lid}`;
-
-  const handleMarkComplete = async () => {
+  async function markComplete() {
     setMarking(true);
+    setError(null);
     try {
-      await saveLessonProgress(lesson.id, { completed: true });
-      setCompletedCount((c) => Math.max(c, lesson.order));
-    } catch {
-      // Keep current UI state; the user can retry.
+      await saveProtectedProgress(lesson.id, { completed: true });
+      await loadCourse();
+    } catch (reason) {
+      setError(getApiErrorMessage(reason, "Darsni yakunlab bo‘lmadi. Videoning kamida 90 foizini ko‘ring."));
     } finally {
       setMarking(false);
     }
-  };
+  }
 
-  // Periodically persist watch time so the video can resume later. Only the
-  // <video> fallback exposes currentTime; YouTube embeds aren't tracked here.
-  const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
-    if (!enrolled) return;
-    const seconds = Math.floor(e.currentTarget.currentTime);
-    if (seconds - lastSavedSecRef.current < 15) return;
-    lastSavedSecRef.current = seconds;
-    saveLessonProgress(lesson.id, { watchedSeconds: seconds }).catch(() => {});
-  };
-
-  const renderVideo = (l: CatalogLesson) => {
-    if (l.youtubeId) {
-      return (
-        <iframe
-          key={l.id}
-          className="w-full h-full"
-          src={`https://www.youtube.com/embed/${l.youtubeId}`}
-          title={l.title}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
-      );
-    }
-    if (l.videoUrl) {
-      return (
-        <video
-          key={l.id}
-          className="w-full h-full"
-          src={l.videoUrl}
-          controls
-          onTimeUpdate={handleTimeUpdate}
-        />
-      );
-    }
-    return (
-      <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
-        {t("noVideo")}
-      </div>
-    );
-  };
+  const lessonHref = (targetId: string) =>
+    `/${locale}/courses/${course.id}/lessons/${targetId}`;
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      {/* Top bar */}
-      <header className="bg-slate-900 text-white flex items-center justify-between gap-3 px-4 sm:px-6 h-14 flex-shrink-0">
-        <Link
-          href={`/${locale}/courses/${course.id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-slate-300 hover:text-white transition-colors min-w-0"
-        >
-          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          <span className="hidden sm:inline truncate">{t("backToCourse")}</span>
+    <div className="flex min-h-screen flex-col bg-slate-100">
+      <header className="flex h-16 items-center gap-4 bg-slate-950 px-4 text-white sm:px-6">
+        <Link href={`/${locale}/courses/${course.id}`} className="shrink-0 text-sm text-slate-300 hover:text-white">
+          ← Kursga qaytish
         </Link>
-
-        <span className="text-sm font-semibold truncate text-center flex-1">{course.title}</span>
-
-        <button
-          onClick={() => setSidebarOpen((v) => !v)}
-          className="lg:hidden inline-flex items-center gap-1.5 text-sm text-slate-300 hover:text-white"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
+        <p className="min-w-0 flex-1 truncate text-center text-sm font-semibold">{course.title}</p>
+        <button type="button" onClick={() => setSidebarOpen((value) => !value)} className="rounded-lg border border-white/20 px-3 py-2 text-xs lg:hidden">
+          Darslar
         </button>
-        <span className="hidden lg:block text-xs text-slate-400 w-28 text-right">
-          {t("lessonsProgress", { done: completed, total })}
-        </span>
+        <div className="hidden w-28 text-right text-xs text-slate-400 lg:block">{progressPercent}% yakunlandi</div>
       </header>
 
-      <div className="flex flex-1 min-h-0">
-        {/* Main content */}
-        <main className="flex-1 min-w-0 overflow-y-auto">
-          {/* Video */}
+      <div className="flex min-h-0 flex-1">
+        <main className="min-w-0 flex-1 overflow-y-auto">
           <div className="bg-black">
-            <div className="max-w-5xl mx-auto aspect-video">
+            <div className="mx-auto aspect-video max-w-6xl">
               {canWatch ? (
-                renderVideo(lesson)
+                lesson.videoAssetId ? (
+                  <SecureVideo lessonId={lesson.id} onCompleted={loadCourse} />
+                ) : (
+                  <div className="grid h-full place-items-center text-sm text-slate-400">Bu darsga video hali biriktirilmagan.</div>
+                )
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-center px-6">
-                  <svg className="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  <p className="text-slate-300 text-sm max-w-sm">{t("lockedText")}</p>
-                  <Link
-                    href={`/${locale}/courses/${course.id}`}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition-colors"
-                  >
-                    {t("enrollCta")}
-                  </Link>
+                <div className="grid h-full place-items-center px-6 text-center text-slate-300">
+                  <div>
+                    <div className="text-4xl">🔒</div>
+                    <p className="mt-4 max-w-md text-sm leading-6">
+                      {lesson.locked
+                        ? "Avval oldingi darsni va majburiy testni yakunlang."
+                        : "Ushbu darsni ko‘rish uchun kursga yoziling."}
+                    </p>
+                    {!user && (
+                      <Link href={`/${locale}/login`} className="mt-5 inline-flex rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white">
+                        Kirish
+                      </Link>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
-            {/* Title + status */}
-            <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-blue-600 mb-1">
-                  {t("lessonLabel", { order: lesson.order })}
-                </p>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{lesson.title}</h1>
+          <div className="mx-auto max-w-5xl px-4 py-7 sm:px-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Dars</p>
+                <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-950">{lesson.title}</h1>
+                {lesson.description && <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">{lesson.description}</p>}
               </div>
-              {isDone ? (
-                <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg flex-shrink-0">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                  {t("completed")}
-                </span>
-              ) : enrolled ? (
-                <button
-                  onClick={handleMarkComplete}
-                  disabled={marking}
-                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-600 border border-gray-300 hover:border-blue-500 hover:text-blue-600 disabled:opacity-60 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg transition-colors flex-shrink-0 cursor-pointer"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {marking ? t("saving") : t("markComplete")}
+              {lesson.completed ? (
+                <span className="rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">✓ Yakunlangan</span>
+              ) : canWatch && user ? (
+                <button type="button" onClick={markComplete} disabled={marking} className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-blue-400 hover:text-blue-700 disabled:opacity-50">
+                  {marking ? "Tekshirilmoqda…" : "Darsni yakunlash"}
                 </button>
               ) : null}
             </div>
 
-            {/* Prev / Next */}
-            <div className="flex items-center justify-between gap-3 mb-8">
+            {error && <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+
+            {canWatch && user && <LessonAssessment lessonId={lesson.id} onPassed={loadCourse} />}
+
+            <div className="mt-8 flex items-center justify-between gap-3 border-t border-slate-200 pt-6">
               {prev ? (
-                <Link
-                  href={lessonHref(prev.id)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white border border-gray-200 hover:border-blue-400 rounded-xl text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                  {t("prev")}
+                <Link href={lessonHref(prev.id)} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:border-blue-400 hover:text-blue-700">
+                  ← Oldingi dars
                 </Link>
-              ) : (
-                <span />
-              )}
-              {next && (
-                <Link
-                  href={lessonHref(next.id)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-xl text-sm font-semibold text-white transition-colors"
-                >
-                  {t("next")}
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+              ) : <span />}
+              {next && !next.locked ? (
+                <Link href={lessonHref(next.id)} className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700">
+                  Keyingi dars →
                 </Link>
-              )}
+              ) : next ? (
+                <span className="cursor-not-allowed rounded-xl bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-500">🔒 Keyingi dars</span>
+              ) : null}
             </div>
-
-            {/* About */}
-            <section className="mb-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-2">{t("aboutTitle")}</h2>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                {lesson.description || t("aboutText")}
-              </p>
-            </section>
-
-            {/* Resources */}
-            <section>
-              <h2 className="text-lg font-bold text-gray-900 mb-3">{t("resourcesTitle")}</h2>
-              <ul className="space-y-2.5">
-                {[t("resourcePdf"), t("resourceAudio")].map((res) => (
-                  <li key={res}>
-                    <span className="flex items-center justify-between gap-3 px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm">
-                      <span className="flex items-center gap-2.5 text-gray-700">
-                        <svg className="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                        {res}
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-blue-600 font-semibold text-xs">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        {t("download")}
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
           </div>
         </main>
 
-        {/* Sidebar — course content */}
-        <aside
-          className={`fixed inset-y-0 right-0 z-40 w-80 bg-white border-l border-gray-200 flex flex-col transform transition-transform duration-300 lg:static lg:translate-x-0 lg:flex-shrink-0 ${
-            sidebarOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"
-          }`}
-        >
-          <div className="flex items-center justify-between gap-2 px-4 h-14 border-b border-gray-100 flex-shrink-0">
-            <div>
-              <h2 className="font-bold text-gray-900 text-sm">{t("courseContent")}</h2>
-              <p className="text-xs text-gray-400">
-                {t("lessonsProgress", { done: completed, total })}
-              </p>
+        <aside className={`${sidebarOpen ? "fixed inset-y-16 right-0 z-30 flex" : "hidden"} w-80 shrink-0 flex-col border-l border-slate-200 bg-white lg:static lg:flex`}>
+          <div className="border-b border-slate-200 p-5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-bold text-slate-950">Kurs tarkibi</span>
+              <span className="text-slate-400">{completedCount}/{data.lessons.length}</span>
             </div>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-1.5 text-gray-400 hover:text-gray-700"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-blue-600" style={{ width: `${progressPercent}%` }} />
+            </div>
           </div>
-
-          <div className="overflow-y-auto flex-1">
-            {sections.map((section) => (
-              <div key={section.id}>
-                <div className="px-4 py-2.5 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide sticky top-0">
-                  {section.title}
-                </div>
-                <ul>
-                  {section.lessons.map((l) => {
-                    const active = l.id === lesson.id;
-                    const done = l.order <= completed;
+          <div className="flex-1 overflow-y-auto p-3">
+            {data.sections.map((section) => (
+              <div key={section.id} className="mb-5">
+                <h2 className="mb-2 px-2 text-xs font-bold uppercase tracking-wide text-slate-400">{section.title}</h2>
+                <div className="space-y-1">
+                  {section.lessons.map((item) => {
+                    const active = item.id === lesson.id;
                     return (
-                      <li key={l.id}>
-                        <Link
-                          href={lessonHref(l.id)}
-                          onClick={() => setSidebarOpen(false)}
-                          className={`flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors border-l-2 ${
-                            active
-                              ? "bg-blue-50 border-blue-600 text-blue-700 font-semibold"
-                              : "border-transparent text-gray-700 hover:bg-gray-50"
-                          }`}
-                        >
-                          {done ? (
-                            <span className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
-                              <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </span>
-                          ) : active ? (
-                            <svg className="w-4 h-4 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M8 5v14l11-7z" />
-                            </svg>
-                          ) : (
-                            <span className="w-4 h-4 rounded-full border-2 border-gray-300 flex-shrink-0" />
-                          )}
-                          <span className="flex-1 min-w-0 truncate">
-                            <span className="text-gray-400 mr-1">{l.order}.</span>
-                            {l.title}
-                          </span>
-                          <span className="text-xs text-gray-400 tabular-nums flex-shrink-0">{l.duration}</span>
-                        </Link>
-                      </li>
+                      <Link
+                        key={item.id}
+                        href={item.locked ? "#" : lessonHref(item.id)}
+                        aria-disabled={item.locked}
+                        onClick={(event) => {
+                          if (item.locked) event.preventDefault();
+                          else setSidebarOpen(false);
+                        }}
+                        className={`flex items-start gap-3 rounded-xl px-3 py-3 text-sm transition ${active ? "bg-blue-50 text-blue-800" : item.locked ? "cursor-not-allowed bg-slate-50 text-slate-400" : "text-slate-700 hover:bg-slate-50"}`}
+                      >
+                        <span className="mt-0.5 shrink-0">{item.completed ? "✓" : item.locked ? "🔒" : "○"}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-medium leading-5">{item.title}</span>
+                          {item.quizRequired && <span className="mt-1 block text-xs text-amber-600">Majburiy test</span>}
+                        </span>
+                      </Link>
                     );
                   })}
-                </ul>
+                </div>
               </div>
             ))}
           </div>
         </aside>
-
-        {/* Mobile backdrop */}
-        {sidebarOpen && (
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 z-30 bg-black/40 lg:hidden"
-            aria-label="Close"
-          />
-        )}
       </div>
     </div>
   );
