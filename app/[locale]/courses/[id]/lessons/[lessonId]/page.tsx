@@ -103,7 +103,7 @@ export default function LessonPlayerPage({
     setMarking(true);
     setError(null);
     try {
-      await saveProtectedProgress(lesson.id, { completed: true });
+      await saveProtectedProgress(lessonId, { completed: true });
       await loadCourse();
     } catch (reason) {
       setError(getApiErrorMessage(reason, "Darsni yakunlab bo‘lmadi. Videoning kamida 90 foizini ko‘ring."));
