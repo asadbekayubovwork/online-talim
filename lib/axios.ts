@@ -10,9 +10,22 @@ import {
 
 const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
 
-export const API_BASE_URL = (
-  configuredApiUrl || "http://localhost:8000/api"
-).replace(/\/+$/, "");
+// NEXT_PUBLIC_* values are inlined at build time. If the variable is missing
+// from a production build, a localhost fallback would point the live site at
+// the visitor's own machine — so only development may fall back to localhost.
+const fallbackApiUrl =
+  process.env.NODE_ENV === "production"
+    ? "https://talim-api.asadullohbek.uz/api"
+    : "http://localhost:8000/api";
+
+export const API_BASE_URL = (configuredApiUrl || fallbackApiUrl).replace(/\/+$/, "");
+
+if (!configuredApiUrl && typeof window !== "undefined") {
+  console.warn(
+    `NEXT_PUBLIC_API_URL is not set; falling back to ${API_BASE_URL}. ` +
+      "Set it in the Vercel project settings and redeploy.",
+  );
+}
 
 const api = axios.create({
   baseURL: API_BASE_URL,
