@@ -58,7 +58,7 @@ export interface CatalogLesson {
 }
 
 export interface CatalogSection {
-  id: number;
+  id: string;
   title: string;
   lessons: CatalogLesson[];
 }
@@ -76,8 +76,8 @@ const CATEGORY_STYLE: Record<Category, { color: string; icon: string }> = {
   tazkiya: { color: "from-green-500 to-teal-600", icon: "🌿" },
 };
 
-// Generic section labels — the backend has no "section" concept, so the flat
-// lesson list is chunked into groups purely for presentation.
+// Fallback labels only. The backend does have real sections; these are used
+// when a course predates them and returns nothing but a flat lesson list.
 const PER_SECTION = 6;
 const SECTION_TITLES = [
   "Kirish moduli",
@@ -197,12 +197,26 @@ export function groupIntoSections(lessons: CatalogLesson[]): CatalogSection[] {
   const sections: CatalogSection[] = [];
   for (let i = 0; i < sorted.length; i += PER_SECTION) {
     sections.push({
-      id: sections.length + 1,
+      id: `chunk-${sections.length + 1}`,
       title: SECTION_TITLES[sections.length % SECTION_TITLES.length],
       lessons: sorted.slice(i, i + PER_SECTION),
     });
   }
   return sections;
+}
+
+/** Real curriculum: sections in their own order, lessons ordered within each. */
+function mapSections(course: ApiCourse): CatalogSection[] {
+  return [...(course.sections ?? [])]
+    .sort((a, b) => a.order - b.order)
+    .map((section) => ({
+      id: section.id,
+      title: section.title,
+      lessons: [...(section.lessons ?? [])]
+        .sort((a, b) => a.order - b.order)
+        .map(mapLesson),
+    }))
+    .filter((section) => section.lessons.length > 0);
 }
 
 /** Previous / next lesson (by order) for player navigation. */
@@ -235,19 +249,26 @@ export async function fetchCourseDetail(
     const { data } = await api.get<ApiCourse>(`/courses/${id}`);
     if (!data) return null;
 
-    // The detail endpoint usually embeds lessons; fall back to the dedicated
-    // lessons endpoint if it doesn't.
-    let apiLessons = data.lessons ?? [];
-    if (apiLessons.length === 0) {
-      try {
-        const res = await api.get<ApiLesson[]>(`/courses/${id}/lessons`);
-        apiLessons = res.data ?? [];
-      } catch {
-        // Leave lessons empty — the course still renders.
+    // The detail endpoint nests lessons under the course's real sections.
+    let sections = mapSections(data);
+
+    if (sections.length === 0) {
+      // Older courses expose a flat list only; chunk it for presentation.
+      let apiLessons = data.lessons ?? [];
+      if (apiLessons.length === 0) {
+        try {
+          const res = await api.get<ApiLesson[]>(`/courses/${id}/lessons`);
+          apiLessons = res.data ?? [];
+        } catch {
+          // Leave lessons empty — the course still renders.
+        }
       }
+      sections = groupIntoSections(apiLessons.map(mapLesson));
     }
 
-    const lessons = apiLessons.map(mapLesson).sort((a, b) => a.order - b.order);
+    // `order` restarts at 0 in every section, so the reading order is the
+    // section order — never a global sort by `order`.
+    const lessons = sections.flatMap((section) => section.lessons);
     const course = mapCourse(data);
 
     // Recompute counts/hours from the real lessons we resolved.
@@ -255,7 +276,7 @@ export async function fetchCourseDetail(
     if (lessons.length) course.lessons = lessons.length;
     if (totalSeconds > 0) course.hours = hoursFromSeconds(totalSeconds);
 
-    return { course, lessons, sections: groupIntoSections(lessons) };
+    return { course, lessons, sections };
   } catch {
     return null;
   }

@@ -47,9 +47,11 @@ export interface ApiLesson {
   videoUrl?: string | null;
   videoAssetId?: string | null;
   duration: number;
+  /** Position inside its section — not unique across the course. */
   order: number;
   isPreview: boolean;
   courseId: string;
+  sectionId?: string;
   locked?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -75,6 +77,14 @@ export interface ApiCourse {
     avatarUrl?: string | null;
   };
   category?: { id: string; name: string } | null;
+  /** Real curriculum from the API — lessons are nested per section. */
+  sections?: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    order: number;
+    lessons?: ApiLesson[];
+  }>;
   lessons?: ApiLesson[];
   _count?: { lessons: number; enrollments: number };
 }

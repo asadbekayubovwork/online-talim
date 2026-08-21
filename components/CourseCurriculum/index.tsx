@@ -21,12 +21,19 @@ export default function CourseCurriculum({
 }: Props) {
   const t = useTranslations("courseDetail");
   // Open the first section by default.
-  const [open, setOpen] = useState<number[]>(sections[0] ? [sections[0].id] : []);
+  const [open, setOpen] = useState<string[]>(sections[0] ? [sections[0].id] : []);
 
-  const toggle = (id: number) =>
+  const toggle = (id: string) =>
     setOpen((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
+
+  // `lesson.order` restarts at 0 in every section, so it cannot be compared
+  // against a course-wide progress count. Number the lessons 1..N instead.
+  const positions = new Map<string, number>();
+  for (const section of sections) {
+    for (const lesson of section.lessons) positions.set(lesson.id, positions.size + 1);
+  }
 
   return (
     <div className="divide-y divide-gray-100 rounded-2xl border border-gray-100 bg-white overflow-hidden">
@@ -63,7 +70,8 @@ export default function CourseCurriculum({
             {isOpen && (
               <ul className="bg-gray-50/60">
                 {section.lessons.map((lesson) => {
-                  const done = lesson.order <= completedLessons;
+                  const position = positions.get(lesson.id) ?? 0;
+                  const done = position <= completedLessons;
                   return (
                     <li key={lesson.id}>
                       <Link
@@ -85,7 +93,7 @@ export default function CourseCurriculum({
                         )}
 
                         <span className="flex-1 min-w-0 text-sm text-gray-700 group-hover:text-blue-700 truncate">
-                          <span className="text-gray-400 mr-1.5">{lesson.order}.</span>
+                          <span className="text-gray-400 mr-1.5">{position}.</span>
                           {lesson.title}
                         </span>
 
