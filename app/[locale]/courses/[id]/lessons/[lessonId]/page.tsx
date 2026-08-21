@@ -5,6 +5,7 @@ import { use, useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import LessonAssessment from "@/components/learning/LessonAssessment";
 import SecureVideo from "@/components/learning/SecureVideo";
+import YouTubeVideo from "@/components/learning/YouTubeVideo";
 import { getApiErrorMessage } from "@/lib/auth";
 import {
   fetchCourseDetail,
@@ -133,7 +134,15 @@ export default function LessonPlayerPage({
           <div className="bg-black">
             <div className="mx-auto aspect-video max-w-6xl">
               {canWatch ? (
-                lesson.videoAssetId ? (
+                lesson.youtubeId ? (
+                  <YouTubeVideo
+                    key={lesson.id}
+                    lessonId={lesson.id}
+                    videoId={lesson.youtubeId}
+                    trackProgress={Boolean(user)}
+                    onCompleted={loadCourse}
+                  />
+                ) : lesson.videoAssetId ? (
                   <SecureVideo lessonId={lesson.id} onCompleted={loadCourse} />
                 ) : (
                   <div className="grid h-full place-items-center text-sm text-slate-400">Bu darsga video hali biriktirilmagan.</div>

@@ -24,6 +24,14 @@ function formatDuration(seconds: number): string {
   return hours ? `${hours}:${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}` : `${minutes}:${String(rest).padStart(2, "0")}`;
 }
 
+function videoLabel(lesson: ApiLesson): string {
+  if (lesson.videoUrl) {
+    return lesson.duration ? `YouTube video · ${formatDuration(lesson.duration)}` : "YouTube video";
+  }
+  if (lesson.videoAssetId) return `Yuklangan video · ${formatDuration(lesson.duration)}`;
+  return "Video yo‘q";
+}
+
 function normalizeSections(course: ApiCourse): CourseSection[] {
   return (course.sections ?? [])
     .map((section) => ({ ...section, description: null, lessons: section.lessons ?? [] }))
@@ -212,7 +220,7 @@ export default function CourseLessonsPage() {
                           {lesson.isPreview && <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Bepul preview</span>}
                         </div>
                         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-                          <span>{lesson.videoAssetId ? `Video · ${formatDuration(lesson.duration)}` : "Video yo‘q"}</span>
+                          <span>{videoLabel(lesson)}</span>
                           <span>{lesson.materials?.length ?? 0} ta material</span>
                           <span className={lesson.quizRequired ? "font-semibold text-amber-700" : ""}>{lesson.quizRequired ? "Majburiy test" : "Test yo‘q"}</span>
                         </div>

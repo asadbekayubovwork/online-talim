@@ -38,6 +38,9 @@ export interface ApiLesson {
   id: string;
   title: string;
   description?: string | null;
+  /** YouTube watch URL — the current source for new lessons. */
+  videoUrl?: string | null;
+  /** Legacy uploaded video; kept playable for lessons created before the switch. */
   videoAssetId?: string | null;
   duration: number;
   order: number;
@@ -107,6 +110,8 @@ export interface LessonInput {
   title: string;
   description?: string;
   sectionId?: string;
+  videoUrl?: string | null;
+  videoDurationSeconds?: number | null;
   videoAssetId?: string;
   order?: number;
   isPreview?: boolean;

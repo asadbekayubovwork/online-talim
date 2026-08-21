@@ -11,17 +11,16 @@ import {
   updateLesson,
   updateMaterial,
   uploadAsset,
-  waitForAssetReady,
   type ApiLesson,
   type CourseSection,
   type LessonMaterial,
 } from "@/lib/admin";
 import { getApiErrorMessage } from "@/lib/auth";
+import { extractYoutubeId, youtubeThumbnail } from "@/lib/youtube";
 
 const fieldClass =
   "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
 
-const VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm", "video/x-matroska"];
 const MATERIAL_TYPES = [
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -67,7 +66,8 @@ export default function LessonForm({
   const [materialRows, setMaterialRows] = useState<LessonMaterial[]>([]);
   const [order, setOrder] = useState("");
   const [isPreview, setIsPreview] = useState(false);
-  const [video, setVideo] = useState<File | null>(null);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [durationMinutes, setDurationMinutes] = useState("");
   const [materials, setMaterials] = useState<File[]>([]);
   const [loading, setLoading] = useState(editing);
   const [saving, setSaving] = useState(false);
@@ -98,6 +98,12 @@ export default function LessonForm({
         setMaterialRows(lesson.materials ?? []);
         setOrder(String(lesson.order ?? ""));
         setIsPreview(lesson.isPreview);
+        setVideoUrl(lesson.videoUrl ?? "");
+        // An uploaded video carries its own measured duration, so only a
+        // YouTube lesson pre-fills the manual field.
+        if (!lesson.videoAssetId && lesson.duration) {
+          setDurationMinutes(String(Math.round(lesson.duration / 60)));
+        }
       })
       .catch((reason) => setError(getApiErrorMessage(reason, "Darsni yuklab bo‘lmadi")))
       .finally(() => setLoading(false));
@@ -108,9 +114,14 @@ export default function LessonForm({
     [materials],
   );
 
-  function validateFiles(): string | null {
-    if (video && !VIDEO_TYPES.includes(video.type)) return "Video MP4, MOV, WebM yoki MKV bo‘lishi kerak.";
-    if (video && video.size > 10 * 1024 * 1024 * 1024) return "Video hajmi 10 GB dan oshmasligi kerak.";
+  const trimmedVideoUrl = videoUrl.trim();
+  const youtubeId = useMemo(() => extractYoutubeId(trimmedVideoUrl), [trimmedVideoUrl]);
+  const videoLinkInvalid = Boolean(trimmedVideoUrl) && !youtubeId;
+
+  function validateInput(): string | null {
+    if (videoLinkInvalid) {
+      return "YouTube havolasi noto‘g‘ri. Masalan: https://www.youtube.com/watch?v=VIDEO_ID";
+    }
     const invalidMaterial = materials.find(
       (file) => !MATERIAL_TYPES.includes(file.type) && !file.name.toLowerCase().endsWith(".zip"),
     );
@@ -118,22 +129,6 @@ export default function LessonForm({
     const oversized = materials.find((file) => file.size > 100 * 1024 * 1024);
     if (oversized) return `${oversized.name}: material hajmi 100 MB dan oshmasligi kerak.`;
     return null;
-  }
-
-  async function uploadVideo(): Promise<string | undefined> {
-    if (!video) return existing?.videoAssetId ?? undefined;
-    setUploadState({ label: video.name, percent: 0, phase: "uploading" });
-    const asset = await uploadAsset(video, "VIDEO", (percent) =>
-      setUploadState({ label: video.name, percent, phase: "uploading" }),
-    );
-    if (asset.status === "READY") {
-      setUploadState({ label: video.name, percent: 100, phase: "ready" });
-      return asset.id;
-    }
-    setUploadState({ label: video.name, percent: 100, phase: "processing" });
-    const ready = await waitForAssetReady(asset.id);
-    setUploadState({ label: video.name, percent: 100, phase: "ready" });
-    return ready.id;
   }
 
   async function uploadMaterials(targetLessonId: string): Promise<void> {
@@ -188,22 +183,23 @@ export default function LessonForm({
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const fileError = validateFiles();
-    if (fileError) {
-      setError(fileError);
+    const inputError = validateInput();
+    if (inputError) {
+      setError(inputError);
       return;
     }
     setSaving(true);
     setError(null);
     try {
-      const videoAssetId = await uploadVideo();
+      const minutes = durationMinutes === "" ? null : Number(durationMinutes);
       const input = {
         title: title.trim(),
         description: description.trim() || undefined,
         sectionId: sectionId || undefined,
         order: order === "" ? undefined : Number(order),
         isPreview,
-        videoAssetId,
+        videoUrl: trimmedVideoUrl || null,
+        videoDurationSeconds: minutes === null ? null : Math.round(minutes * 60),
       };
       const lesson = editing && lessonId
         ? await updateLesson(lessonId, input)
@@ -302,27 +298,86 @@ export default function LessonForm({
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
         <div className="mb-5">
-          <h2 className="font-bold text-slate-950">Himoyalangan video</h2>
+          <h2 className="font-bold text-slate-950">Dars videosi (YouTube)</h2>
           <p className="mt-1 text-sm leading-6 text-slate-500">
-            Video to‘g‘ridan-to‘g‘ri private MinIO storage’ga yuklanadi. Server uni shifrlangan HLS formatiga tayyorlaydi; public link saqlanmaydi.
+            Video fayl yuklash vaqtincha o‘chirilgan. Darsga YouTube havolasini qo‘ying — talabalar
+            uni saytning o‘zida ko‘radi.
           </p>
         </div>
-        {existing?.videoAssetId && !video && (
-          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            Darsga video biriktirilgan. Faqat almashtirish kerak bo‘lsa yangi fayl tanlang.
+
+        {existing?.videoAssetId && (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Bu darsga ilgari yuklangan video biriktirilgan va u ishlashda davom etadi. YouTube
+            havolasi qo‘shilsa, talabaga o‘sha havola ko‘rsatiladi.
           </div>
         )}
-        <label className="block cursor-pointer rounded-2xl border-2 border-dashed border-slate-300 p-6 text-center transition hover:border-blue-400 hover:bg-blue-50/40">
-          <input
-            type="file"
-            accept="video/mp4,video/quicktime,video/webm,video/x-matroska,.mkv"
-            className="sr-only"
-            onChange={(event) => setVideo(event.target.files?.[0] ?? null)}
-          />
-          <span className="block font-semibold text-slate-800">{video ? video.name : "Video faylni tanlang"}</span>
-          <span className="mt-1 block text-xs text-slate-500">MP4, MOV, WebM yoki MKV · maksimal 10 GB</span>
-          {video && <span className="mt-2 block text-sm text-blue-600">{formatBytes(video.size)}</span>}
-        </label>
+
+        <div className="space-y-5">
+          <div>
+            <label htmlFor="lesson-video-url" className="mb-2 block text-sm font-medium text-slate-700">
+              YouTube havolasi
+            </label>
+            <input
+              id="lesson-video-url"
+              type="url"
+              inputMode="url"
+              className={`${fieldClass} ${videoLinkInvalid ? "border-red-400 focus:border-red-500 focus:ring-red-100" : ""}`}
+              value={videoUrl}
+              onChange={(event) => setVideoUrl(event.target.value)}
+              placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
+              aria-invalid={videoLinkInvalid}
+              aria-describedby="lesson-video-url-help"
+            />
+            <p id="lesson-video-url-help" className={`mt-2 text-xs leading-5 ${videoLinkInvalid ? "text-red-600" : "text-slate-500"}`}>
+              {videoLinkInvalid
+                ? "Havola noto‘g‘ri. watch, youtu.be, shorts yoki embed ko‘rinishidagi YouTube havolasini kiriting."
+                : "watch, youtu.be, shorts va embed havolalari qabul qilinadi. Bo‘sh qoldirilsa, darsda video bo‘lmaydi."}
+            </p>
+          </div>
+
+          {youtubeId && (
+            <div className="flex flex-col gap-4 rounded-xl bg-slate-50 p-4 sm:flex-row sm:items-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={youtubeThumbnail(youtubeId)}
+                alt=""
+                className="h-24 w-40 shrink-0 rounded-lg object-cover"
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-800">Video topildi</p>
+                <p className="mt-1 truncate text-xs text-slate-500">ID: {youtubeId}</p>
+                <a
+                  href={`https://www.youtube.com/watch?v=${youtubeId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-flex text-xs font-semibold text-blue-700 hover:underline"
+                >
+                  YouTube’da tekshirish →
+                </a>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="lesson-duration" className="mb-2 block text-sm font-medium text-slate-700">
+              Video davomiyligi (daqiqa)
+            </label>
+            <input
+              id="lesson-duration"
+              type="number"
+              min={0}
+              className={`${fieldClass} sm:max-w-xs`}
+              value={durationMinutes}
+              onChange={(event) => setDurationMinutes(event.target.value)}
+              placeholder="Masalan: 12"
+              aria-describedby="lesson-duration-help"
+            />
+            <p id="lesson-duration-help" className="mt-2 text-xs leading-5 text-slate-500">
+              Ixtiyoriy. Kurs tarkibida ko‘rsatiladi va kiritilgan bo‘lsa, talaba darsni yakunlash
+              uchun videoning kamida 90 foizini ko‘rishi shart bo‘ladi.
+            </p>
+          </div>
+        </div>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
@@ -364,9 +419,7 @@ export default function LessonForm({
         <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
           <div className="mb-2 flex items-center justify-between gap-4 text-sm">
             <span className="truncate font-medium text-blue-950">{uploadState.label}</span>
-            <span className="shrink-0 text-blue-700">
-              {uploadState.phase === "processing" ? "Video tayyorlanmoqda…" : `${uploadState.percent}%`}
-            </span>
+            <span className="shrink-0 text-blue-700">{uploadState.percent}%</span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-blue-100">
             <div className="h-full rounded-full bg-blue-600 transition-all" style={{ width: `${uploadState.percent}%` }} />
@@ -377,10 +430,10 @@ export default function LessonForm({
       <div className="flex flex-wrap gap-3">
         <button
           type="submit"
-          disabled={saving || !title.trim()}
+          disabled={saving || !title.trim() || videoLinkInvalid}
           className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {saving ? "Yuklanmoqda va saqlanmoqda…" : editing ? "O‘zgarishlarni saqlash" : "Darsni yaratish"}
+          {saving ? "Saqlanmoqda…" : editing ? "O‘zgarishlarni saqlash" : "Darsni yaratish"}
         </button>
         <button
           type="button"

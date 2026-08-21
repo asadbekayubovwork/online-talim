@@ -3,6 +3,7 @@
 import api from "./axios";
 import type { ApiCourse, ApiLesson } from "./admin";
 import type { Category, Level } from "./courses";
+import { extractYoutubeId } from "./youtube";
 
 export type { Category, Level };
 
@@ -34,8 +35,8 @@ export interface CatalogLesson {
   description: string;
   duration: string;
   durationSeconds: number;
-  youtubeId: null;
-  videoUrl: null;
+  youtubeId: string | null;
+  videoUrl: string | null;
   videoAssetId: string | null;
   preview: boolean;
   locked: boolean;
@@ -109,8 +110,8 @@ export function mapLesson(lesson: ApiLesson): CatalogLesson {
     description: lesson.description ?? "",
     duration: formatDuration(duration),
     durationSeconds: duration,
-    youtubeId: null,
-    videoUrl: null,
+    youtubeId: extractYoutubeId(lesson.videoUrl),
+    videoUrl: lesson.videoUrl ?? null,
     videoAssetId: lesson.videoAssetId ?? null,
     preview: Boolean(lesson.isPreview),
     locked: Boolean(lesson.locked),
