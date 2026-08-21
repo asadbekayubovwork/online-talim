@@ -47,7 +47,6 @@ export interface CatalogLesson {
 
 export interface CatalogSection {
   id: string;
-  id: string;
   title: string;
   lessons: CatalogLesson[];
 }

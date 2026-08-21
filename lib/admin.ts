@@ -47,7 +47,7 @@ export interface ApiLesson {
   order: number;
   isPreview: boolean;
   courseId: string;
-  sectionId?: string;
+  sectionId: string;
   locked?: boolean;
   completed?: boolean;
   quizRequired?: boolean;
@@ -82,15 +82,9 @@ export interface ApiCourse {
     title: string;
     description?: string | null;
     order: number;
-    lessons?: ApiLesson[];
-  }>;
-  lessons?: ApiLesson[];
-  sections?: Array<{
-    id: string;
-    title: string;
-    order: number;
     lessons: ApiLesson[];
   }>;
+  lessons?: ApiLesson[];
   lessonCount?: number;
   enrollmentCount?: number;
   averageRating?: number | null;
