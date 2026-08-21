@@ -2,99 +2,109 @@
 
 import Link from "next/link";
 import { useLocale } from "next-intl";
-import { useEffect, useState } from "react";
-import { listCourses, listUsers, type ApiCourse } from "@/lib/admin";
+import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import { getAdminDashboard, type AdminDashboard } from "@/lib/admin";
 import { getApiErrorMessage } from "@/lib/auth";
 
-export default function AdminDashboardPage() {
-  const locale = useLocale();
-  const [stats, setStats] = useState({ users: 0, courses: 0, lessons: 0 });
-  const [recent, setRecent] = useState<ApiCourse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    Promise.all([listUsers(), listCourses()])
-      .then(([users, courses]) => {
-        const lessons = courses.reduce(
-          (sum, c) => sum + (c._count?.lessons ?? 0),
-          0
-        );
-        setStats({ users: users.length, courses: courses.length, lessons });
-        setRecent(courses.slice(0, 5));
-      })
-      .catch((e) => setError(getApiErrorMessage(e, "Ma'lumotlarni yuklab bo'lmadi")))
-      .finally(() => setLoading(false));
-  }, []);
-
+function MetricCard({ label, value, note }: { label: string; value: string | number; note: string }) {
   return (
-    <div>
-      <h1 className="text-2xl font-extrabold text-gray-900 mb-1">Dashboard</h1>
-      <p className="text-gray-500 text-sm mb-8">Platforma umumiy ko'rsatkichlari</p>
-
-      {error && (
-        <div className="px-4 py-3 mb-6 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
-          {error}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-10">
-        <StatCard label="Foydalanuvchilar" value={loading ? "…" : stats.users} href={`/${locale}/admin/users`} />
-        <StatCard label="Kurslar" value={loading ? "…" : stats.courses} href={`/${locale}/admin/courses`} />
-        <StatCard label="Darslar" value={loading ? "…" : stats.lessons} />
-      </div>
-
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-gray-900">So'nggi kurslar</h2>
-        <Link
-          href={`/${locale}/admin/courses/new`}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
-        >
-          + Kurs qo'shish
-        </Link>
-      </div>
-
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        {loading ? (
-          <p className="p-6 text-sm text-gray-500">Yuklanmoqda...</p>
-        ) : recent.length === 0 ? (
-          <p className="p-6 text-sm text-gray-500">Hali kurslar yo'q.</p>
-        ) : (
-          <ul className="divide-y divide-gray-100">
-            {recent.map((c) => (
-              <li key={c.id}>
-                <Link
-                  href={`/${locale}/admin/courses/${c.id}`}
-                  className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors"
-                >
-                  <span className="text-sm font-medium text-gray-900">{c.title}</span>
-                  <span className="text-xs text-gray-400">
-                    {c._count?.lessons ?? 0} dars
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p className="text-sm font-medium text-slate-500">{label}</p>
+      <p className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">{value}</p>
+      <p className="mt-2 text-xs text-slate-400">{note}</p>
     </div>
   );
 }
 
-function StatCard({
-  label,
-  value,
-  href,
-}: {
-  label: string;
-  value: number | string;
-  href?: string;
-}) {
-  const card = (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:border-blue-200 transition-colors">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-3xl font-extrabold text-gray-900 mt-1">{value}</p>
+function BarChart({ rows }: { rows: Array<{ label: string; value: number }> }) {
+  const max = Math.max(...rows.map((row) => row.value), 1);
+  return (
+    <div className="space-y-4">
+      {rows.length ? rows.map((row) => (
+        <div key={row.label}>
+          <div className="mb-1.5 flex items-center justify-between gap-4 text-xs">
+            <span className="truncate font-medium text-slate-600">{row.label}</span>
+            <span className="text-slate-400">{row.value}</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-full rounded-full bg-blue-600" style={{ width: `${Math.max((row.value / max) * 100, 3)}%` }} />
+          </div>
+        </div>
+      )) : <p className="text-sm text-slate-400">Hali ma’lumot yetarli emas.</p>}
     </div>
   );
-  return href ? <Link href={href}>{card}</Link> : card;
+}
+
+export default function AdminDashboardPage() {
+  const locale = useLocale();
+  const { user, loading: authLoading } = useAuth();
+  const [data, setData] = useState<AdminDashboard | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (user?.role !== "ADMIN") {
+      setLoading(false);
+      return;
+    }
+    getAdminDashboard()
+      .then(setData)
+      .catch((reason) => setError(getApiErrorMessage(reason, "Dashboard ma’lumotlarini yuklab bo‘lmadi")))
+      .finally(() => setLoading(false));
+  }, [authLoading, user?.role]);
+
+  const enrollmentRows = useMemo(
+    () => (data?.enrollmentsByDay ?? []).map((row) => ({ label: new Date(row.date).toLocaleDateString("uz-UZ", { day: "2-digit", month: "short" }), value: row.count })),
+    [data],
+  );
+  const completionRows = useMemo(
+    () => (data?.completionsByCourse ?? []).map((row) => ({ label: row.course, value: row.count })),
+    [data],
+  );
+
+  return (
+    <div>
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-blue-600">Boshqaruv markazi</p>
+          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-950">Platforma ko‘rsatkichlari</h1>
+          <p className="mt-2 text-sm text-slate-500">Kurslar, talabalar va o‘zlashtirish holatini bir joydan kuzating.</p>
+        </div>
+        <Link href={`/${locale}/admin/courses/new`} className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">+ Kurs yaratish</Link>
+      </div>
+
+      {error && <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="Foydalanuvchilar" value={loading ? "…" : data?.totalUsers ?? 0} note="Jami ro‘yxatdan o‘tganlar" />
+        <MetricCard label="Faol o‘quvchilar" value={loading ? "…" : data?.activeEnrollments ?? 0} note="Hozir kurs o‘tayotganlar" />
+        <MetricCard label="E’lon qilingan kurslar" value={loading ? "…" : data?.publishedCourses ?? 0} note="Talabalarga ko‘rinadigan kurslar" />
+        <MetricCard label="Tayyor videolar" value={loading ? "…" : data?.readyVideos ?? 0} note="MinIO’da processing tugagan" />
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <MetricCard label="Kursni tugatish darajasi" value={loading ? "…" : `${data?.completionRate ?? 0}%`} note="Barcha yozilishlar ichida" />
+        <MetricCard label="O‘rtacha baho" value={loading ? "…" : (data?.averageRating ?? 0).toFixed(1)} note="Talabalar review’lari asosida" />
+      </div>
+
+      <div className="mt-8 grid gap-5 xl:grid-cols-2">
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="mb-6">
+            <h2 className="font-bold text-slate-950">Oxirgi 14 kunlik yozilishlar</h2>
+            <p className="mt-1 text-sm text-slate-500">Kunlik yangi kurs yozilishlari.</p>
+          </div>
+          <BarChart rows={enrollmentRows} />
+        </section>
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="mb-6">
+            <h2 className="font-bold text-slate-950">Kurslar bo‘yicha yakunlash</h2>
+            <p className="mt-1 text-sm text-slate-500">Eng ko‘p tugatilgan kurslar.</p>
+          </div>
+          <BarChart rows={completionRows} />
+        </section>
+      </div>
+    </div>
+  );
 }
