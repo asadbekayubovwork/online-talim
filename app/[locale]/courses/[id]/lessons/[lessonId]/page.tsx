@@ -117,8 +117,8 @@ export default function LessonPlayerPage({
     `/${locale}/courses/${course.id}/lessons/${targetId}`;
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-100">
-      <header className="flex h-16 items-center gap-4 bg-slate-950 px-4 text-white sm:px-6">
+    <div className="flex h-dvh flex-col overflow-hidden bg-slate-100">
+      <header className="flex h-16 shrink-0 items-center gap-4 bg-slate-950 px-4 text-white sm:px-6">
         <Link href={`/${locale}/courses/${course.id}`} className="shrink-0 text-sm text-slate-300 hover:text-white">
           ← Kursga qaytish
         </Link>
@@ -129,8 +129,8 @@ export default function LessonPlayerPage({
         <div className="hidden w-28 text-right text-xs text-slate-400 lg:block">{progressPercent}% yakunlandi</div>
       </header>
 
-      <div className="flex min-h-0 flex-1">
-        <main className="min-w-0 flex-1 overflow-y-auto">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain">
           <div className="bg-black">
             <div className="mx-auto aspect-video max-w-6xl">
               {canWatch ? (
@@ -204,8 +204,8 @@ export default function LessonPlayerPage({
           </div>
         </main>
 
-        <aside className={`${sidebarOpen ? "fixed inset-y-16 right-0 z-30 flex" : "hidden"} w-80 shrink-0 flex-col border-l border-slate-200 bg-white lg:static lg:flex`}>
-          <div className="border-b border-slate-200 p-5">
+        <aside className={`${sidebarOpen ? "fixed inset-y-16 right-0 z-30 flex" : "hidden"} w-80 shrink-0 flex-col overflow-hidden border-l border-slate-200 bg-white lg:static lg:flex`}>
+          <div className="shrink-0 border-b border-slate-200 p-5">
             <div className="flex items-center justify-between text-sm">
               <span className="font-bold text-slate-950">Kurs tarkibi</span>
               <span className="text-slate-400">{completedCount}/{data.lessons.length}</span>
@@ -214,7 +214,7 @@ export default function LessonPlayerPage({
               <div className="h-full rounded-full bg-blue-600" style={{ width: `${progressPercent}%` }} />
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto p-3">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3">
             {data.sections.map((section) => (
               <div key={section.id} className="mb-5">
                 <h2 className="mb-2 px-2 text-xs font-bold uppercase tracking-wide text-slate-400">{section.title}</h2>
@@ -235,7 +235,6 @@ export default function LessonPlayerPage({
                         <span className="mt-0.5 shrink-0">{item.completed ? "✓" : item.locked ? "🔒" : "○"}</span>
                         <span className="min-w-0 flex-1">
                           <span className="block font-medium leading-5">{item.title}</span>
-                          {item.quizRequired && <span className="mt-1 block text-xs text-amber-600">Majburiy test</span>}
                         </span>
                       </Link>
                     );

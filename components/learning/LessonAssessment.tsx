@@ -17,6 +17,22 @@ function bytes(value: number): string {
   return `${(value / 1024 / 1024).toFixed(1)} MB`;
 }
 
+/** "1 kun 4 soat", "1 soat 59 daqiqa", "45 daqiqa" — the wait before a retry. */
+function formatRemaining(seconds: number): string {
+  if (seconds >= 86400) {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    return hours ? `${days} kun ${hours} soat` : `${days} kun`;
+  }
+  if (seconds >= 3600) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return minutes ? `${hours} soat ${minutes} daqiqa` : `${hours} soat`;
+  }
+  if (seconds >= 60) return `${Math.floor(seconds / 60)} daqiqa`;
+  return `${seconds} soniya`;
+}
+
 export default function LessonAssessment({
   lessonId,
   onPassed,
@@ -31,6 +47,22 @@ export default function LessonAssessment({
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  // The newest answer wins: a fresh submit result overrides what the page loaded.
+  const lockedUntilIso = result?.lockedUntil ?? quiz?.lockedUntil ?? null;
+  const alreadyPassed = result?.passed ?? quiz?.passed ?? false;
+  const remainingSeconds =
+    lockedUntilIso && !alreadyPassed
+      ? Math.max(0, Math.round((new Date(lockedUntilIso).getTime() - now) / 1000))
+      : 0;
+  const locked = remainingSeconds > 0;
+
+  useEffect(() => {
+    if (!locked) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [locked]);
 
   useEffect(() => {
     let active = true;
@@ -113,7 +145,7 @@ export default function LessonAssessment({
           <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="font-bold text-slate-950">{quiz.title}</h2>
-              <p className="mt-1 text-sm text-slate-500">O‘tish bali: {quiz.passingScore}% · Urinish: {quiz.attemptsUsed}{quiz.maxAttempts ? ` / ${quiz.maxAttempts}` : ""}</p>
+              <p className="mt-1 text-sm text-slate-500">O‘tish bali: {quiz.passingScore}% · Urinish: {result?.attemptsUsed ?? quiz.attemptsUsed}{quiz.maxAttempts ? ` / ${quiz.maxAttempts}` : ""}</p>
             </div>
             {result && (
               <span className={`rounded-full px-3 py-1.5 text-sm font-bold ${result.passed ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
@@ -124,7 +156,7 @@ export default function LessonAssessment({
 
           <div className="space-y-6">
             {quiz.questions.map((question, index) => (
-              <fieldset key={question.id} disabled={submitting || result?.passed}>
+              <fieldset key={question.id} disabled={submitting || alreadyPassed || locked}>
                 <legend className="mb-3 text-sm font-semibold leading-6 text-slate-900">{index + 1}. {question.prompt}</legend>
                 <div className="space-y-2">
                   {question.choices.map((choice) => {
@@ -143,14 +175,31 @@ export default function LessonAssessment({
           </div>
 
           {error && <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-          {result && (
-            <div className={`mt-5 rounded-xl border px-4 py-3 text-sm ${result.passed ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-900"}`}>
-              {result.passed ? "Testdan muvaffaqiyatli o‘tdingiz. Keyingi dars ochildi." : "O‘tish bali yetarli emas. Darsni takrorlab, qayta urinib ko‘ring."}
+          {alreadyPassed && (
+            <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              Testdan muvaffaqiyatli o‘tdingiz. Keyingi dars ochildi.
             </div>
           )}
-          {!result?.passed && (
-            <button type="button" onClick={handleSubmit} disabled={submitting} className="mt-5 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
-              {submitting ? "Tekshirilmoqda…" : "Javoblarni tekshirish"}
+          {result && !result.passed && (
+            <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              O‘tish bali yetarli emas. Darsni takrorlab, qayta urinib ko‘ring.
+            </div>
+          )}
+          {locked && (
+            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+              <span className="font-semibold">Test vaqtincha yopiq.</span> Qayta urinish{" "}
+              <span className="font-semibold tabular-nums">{formatRemaining(remainingSeconds)}</span>dan
+              keyin ochiladi. Shu vaqt ichida darsni qayta ko‘rib chiqing.
+            </div>
+          )}
+          {!alreadyPassed && (
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting || locked}
+              className="mt-5 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {submitting ? "Tekshirilmoqda…" : locked ? "Qayta urinish yopiq" : "Javoblarni tekshirish"}
             </button>
           )}
         </section>

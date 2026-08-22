@@ -29,6 +29,10 @@ export interface PublicQuiz {
   passingScore: number;
   maxAttempts?: number | null;
   attemptsUsed: number;
+  passed?: boolean;
+  /** Set while the student waits out the cooldown after a failed attempt. */
+  lockedUntil?: string | null;
+  retryAfterSeconds?: number | null;
   questions: PublicQuizQuestion[];
 }
 
@@ -38,6 +42,9 @@ export interface QuizResult {
   correctAnswers: number;
   totalQuestions: number;
   nextLessonUnlocked: boolean;
+  attemptsUsed?: number;
+  lockedUntil?: string | null;
+  retryAfterSeconds?: number | null;
 }
 
 function absoluteApiUrl(path: string): string {

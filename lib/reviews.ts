@@ -4,6 +4,7 @@ export interface CourseReview {
   id: string;
   rating: number;
   body: string;
+  userId: string;
   userName: string;
   createdAt: string;
 }

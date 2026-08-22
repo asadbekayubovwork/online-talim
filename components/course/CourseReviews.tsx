@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { getApiErrorMessage } from "@/lib/auth";
 import {
-  deleteCourseReview,
   listCourseReviews,
   saveCourseReview,
   type CourseReview,
@@ -53,6 +52,12 @@ export default function CourseReviews({
     setReviews(rows);
   }, [courseId]);
 
+  // Foydalanuvchi allaqachon baho yozgan bo‘lsa, forma ko‘rsatilmaydi.
+  const myReview = useMemo(
+    () => (user ? reviews.find((row) => row.userId === user.id) ?? null : null),
+    [reviews, user],
+  );
+
   const average = useMemo(
     () =>
       reviews.length
@@ -99,19 +104,6 @@ export default function CourseReviews({
     }
   }
 
-  async function remove() {
-    setSaving(true);
-    setError(null);
-    try {
-      await deleteCourseReview(courseId);
-      await load();
-    } catch (reason) {
-      setError(getApiErrorMessage(reason, "Bahoni o‘chirib bo‘lmadi"));
-    } finally {
-      setSaving(false);
-    }
-  }
-
   return (
     <section className="space-y-5" aria-labelledby="course-reviews-title">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -128,7 +120,7 @@ export default function CourseReviews({
         {reviews.length > 0 && <Stars value={Math.round(average)} />}
       </div>
 
-      {canReview && user && (
+      {canReview && user && !loading && !myReview && (
         <form onSubmit={submit} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -145,23 +137,15 @@ export default function CourseReviews({
             minLength={3}
             maxLength={2000}
             required
-            className="min-h-28 w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            className="min-h-28 w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
             placeholder="Kurs haqida aniq va hurmatli fikr yozing…"
           />
-          <div className="mt-3 flex flex-wrap gap-3">
+          <div className="mt-3">
             <button
               disabled={saving || body.trim().length < 3}
-              className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
             >
               {saving ? "Saqlanmoqda…" : "Bahoni saqlash"}
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={remove}
-              className="rounded-xl px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
-            >
-              Mening bahomni o‘chirish
             </button>
           </div>
         </form>
