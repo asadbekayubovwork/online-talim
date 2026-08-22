@@ -157,3 +157,28 @@ body {
     opacity: 1; /* Firefox placeholder’ni default’da xiralashtiradi */
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Toast bildirishnomalari — o‘ngdan yengil siljib chiqadi. Harakatni
+   kamaytirishni so‘ragan foydalanuvchilarga animatsiya berilmaydi.
+   --------------------------------------------------------------------------- */
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) translateX(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateX(0) scale(1);
+  }
+}
+
+.toast-enter {
+  animation: toast-enter 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-enter {
+    animation: none;
+  }
+}

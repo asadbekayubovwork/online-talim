@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { getAdminDashboard, type AdminDashboard } from "@/lib/admin";
 import { getApiErrorMessage } from "@/lib/auth";
+import { toast } from "@/components/ToastProvider";
 
 function MetricCard({ label, value, note }: { label: string; value: string | number; note: string }) {
   return (
@@ -41,7 +42,6 @@ export default function AdminDashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const [data, setData] = useState<AdminDashboard | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -51,7 +51,9 @@ export default function AdminDashboardPage() {
     }
     getAdminDashboard()
       .then(setData)
-      .catch((reason) => setError(getApiErrorMessage(reason, "Dashboard ma’lumotlarini yuklab bo‘lmadi")))
+      .catch((reason) =>
+        toast.error(getApiErrorMessage(reason, "Dashboard ma’lumotlarini yuklab bo‘lmadi")),
+      )
       .finally(() => setLoading(false));
   }, [authLoading, user?.role]);
 
@@ -75,7 +77,6 @@ export default function AdminDashboardPage() {
         <Link href={`/${locale}/admin/courses/new`} className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">+ Kurs yaratish</Link>
       </div>
 
-      {error && <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Foydalanuvchilar" value={loading ? "…" : data?.totalUsers ?? 0} note="Jami ro‘yxatdan o‘tganlar" />

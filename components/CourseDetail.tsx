@@ -8,6 +8,7 @@ import Header from "@/components/Header";
 import { useAuth } from "@/components/AuthProvider";
 import CourseReviews from "@/components/course/CourseReviews";
 import { getApiErrorMessage } from "@/lib/auth";
+import { toast } from "@/components/ToastProvider";
 import {
   fetchCourseDetail,
   type CatalogCourseDetail,
@@ -25,7 +26,6 @@ export default function CourseDetail({ locale, id }: { locale: string; id: strin
   const [enrolled, setEnrolled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [rating, setRating] = useState<number | null>(null);
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function CourseDetail({ locale, id }: { locale: string; id: strin
         setData(response);
         setRating(response?.course.averageRating ?? null);
       })
-      .catch((reason) => active && setError(getApiErrorMessage(reason, "Kursni yuklab bo‘lmadi")))
+      .catch((reason) => active && toast.error(getApiErrorMessage(reason, "Kursni yuklab bo‘lmadi")))
       .finally(() => active && setLoading(false));
     return () => {
       active = false;
@@ -63,14 +63,14 @@ export default function CourseDetail({ locale, id }: { locale: string; id: strin
       return;
     }
     setEnrolling(true);
-    setError(null);
     try {
       await enroll(id);
       setEnrolled(true);
+      toast.success("Kursga yozildingiz", "Darslarni boshlashingiz mumkin.");
     } catch (reason) {
       const status = (reason as { response?: { status?: number } }).response?.status;
       if (status === 409) setEnrolled(true);
-      else setError(getApiErrorMessage(reason, "Kursga yozilib bo‘lmadi"));
+      else toast.error(getApiErrorMessage(reason, "Kursga yozilib bo‘lmadi"));
     } finally {
       setEnrolling(false);
     }
@@ -156,7 +156,6 @@ export default function CourseDetail({ locale, id }: { locale: string; id: strin
 
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_340px]">
           <div className="space-y-10">
-            {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
             <section>
               <h2 className="text-xl font-bold text-slate-950">Kurs haqida</h2>

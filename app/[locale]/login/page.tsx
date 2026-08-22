@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import PasswordInput from "@/components/PasswordInput";
+import { toast } from "@/components/ToastProvider";
 import { getApiErrorMessage } from "@/lib/auth";
 
 export default function LoginPage() {
@@ -15,7 +16,6 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -25,15 +25,14 @@ export default function LoginPage() {
     // Checked on submit rather than by disabling the button, so an empty form
     // explains itself instead of silently refusing the click.
     if (!identifier.trim()) {
-      setError(t("identifierRequired"));
+      toast.error(t("identifierRequired"));
       return;
     }
     if (!password) {
-      setError(t("passwordRequired"));
+      toast.error(t("passwordRequired"));
       return;
     }
 
-    setError(null);
     setSubmitting(true);
     try {
       const user = await login({ username: identifier.trim(), password });
@@ -45,7 +44,7 @@ export default function LoginPage() {
             : "my-courses";
       router.replace(`/${locale}/${destination}`);
     } catch (reason) {
-      setError(getApiErrorMessage(reason, t("errorGeneric")));
+      toast.error(getApiErrorMessage(reason, t("errorGeneric")));
       setSubmitting(false);
     }
   }
@@ -73,14 +72,6 @@ export default function LoginPage() {
           </div>
 
           <form className="space-y-5" onSubmit={handleSubmit} noValidate>
-            <div aria-live="polite">
-              {error && (
-                <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
-                </div>
-              )}
-            </div>
-
             <div>
               <label htmlFor="identifier" className="mb-2 block text-sm font-medium text-slate-700">
                 {t("identifier")}

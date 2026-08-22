@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, useCallback } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import PasswordInput from "@/components/PasswordInput";
+import { toast } from "@/components/ToastProvider";
 import { getApiErrorMessage, type RegisterPayload } from "@/lib/auth";
 
 interface FormValues {
@@ -87,7 +88,6 @@ export default function RegisterPage() {
   const [touched, setTouched] = useState<Touched>({});
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
 
   const set = useCallback((field: Field, value: string) => {
     setValues((current) => {
@@ -113,7 +113,6 @@ export default function RegisterPage() {
     event.preventDefault();
     if (submitting) return;
     setSubmitted(true);
-    setServerError(null);
 
     const found = validate(values);
     setErrors(found);
@@ -133,7 +132,7 @@ export default function RegisterPage() {
       await register(payload);
       router.replace(`/${locale}/my-courses`);
     } catch (reason) {
-      setServerError(getApiErrorMessage(reason, t("errorGeneric")));
+      toast.error(getApiErrorMessage(reason, t("errorGeneric")));
       setSubmitting(false);
     }
   }
@@ -160,14 +159,6 @@ export default function RegisterPage() {
           </div>
 
           <form className="space-y-5" onSubmit={handleSubmit} noValidate>
-            <div aria-live="polite">
-              {serverError && (
-                <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {serverError}
-                </div>
-              )}
-            </div>
-
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
                 <label htmlFor="firstName" className="mb-2 block text-sm font-medium text-slate-700">

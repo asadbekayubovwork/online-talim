@@ -16,6 +16,7 @@ import {
   type LessonMaterial,
 } from "@/lib/admin";
 import { getApiErrorMessage } from "@/lib/auth";
+import { toast } from "@/components/ToastProvider";
 import { extractYoutubeId, youtubeThumbnail } from "@/lib/youtube";
 
 const fieldClass =
@@ -71,7 +72,6 @@ export default function LessonForm({
   const [materials, setMaterials] = useState<File[]>([]);
   const [loading, setLoading] = useState(editing);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [uploadState, setUploadState] = useState<UploadState | null>(null);
 
   useEffect(() => {
@@ -84,7 +84,7 @@ export default function LessonForm({
         setSections(rows);
         setSectionId((current) => current || rows[0]?.id || "");
       })
-      .catch((reason) => setError(getApiErrorMessage(reason, "Bo‘limlarni yuklab bo‘lmadi")));
+      .catch((reason) => toast.error(getApiErrorMessage(reason, "Bo‘limlarni yuklab bo‘lmadi")));
   }, [courseId]);
 
   useEffect(() => {
@@ -105,7 +105,7 @@ export default function LessonForm({
           setDurationMinutes(String(Math.round(lesson.duration / 60)));
         }
       })
-      .catch((reason) => setError(getApiErrorMessage(reason, "Darsni yuklab bo‘lmadi")))
+      .catch((reason) => toast.error(getApiErrorMessage(reason, "Darsni yuklab bo‘lmadi")))
       .finally(() => setLoading(false));
   }, [lessonId]);
 
@@ -152,12 +152,11 @@ export default function LessonForm({
   async function removeMaterial(material: LessonMaterial) {
     if (!lessonId || !window.confirm(`“${material.title}” materialini o‘chirasizmi?`)) return;
     setSaving(true);
-    setError(null);
     try {
       await deleteMaterial(lessonId, material.id);
       setMaterialRows((current) => current.filter((item) => item.id !== material.id));
     } catch (reason) {
-      setError(getApiErrorMessage(reason, "Materialni o‘chirib bo‘lmadi"));
+      toast.error(getApiErrorMessage(reason, "Materialni o‘chirib bo‘lmadi"));
     } finally {
       setSaving(false);
     }
@@ -166,7 +165,6 @@ export default function LessonForm({
   async function toggleDownload(material: LessonMaterial) {
     if (!lessonId) return;
     setSaving(true);
-    setError(null);
     try {
       const updated = await updateMaterial(lessonId, material.id, {
         isDownloadable: !material.isDownloadable,
@@ -175,7 +173,7 @@ export default function LessonForm({
         current.map((item) => (item.id === updated.id ? updated : item)),
       );
     } catch (reason) {
-      setError(getApiErrorMessage(reason, "Material holatini yangilab bo‘lmadi"));
+      toast.error(getApiErrorMessage(reason, "Material holatini yangilab bo‘lmadi"));
     } finally {
       setSaving(false);
     }
@@ -185,11 +183,10 @@ export default function LessonForm({
     event.preventDefault();
     const inputError = validateInput();
     if (inputError) {
-      setError(inputError);
+      toast.warning(inputError);
       return;
     }
     setSaving(true);
-    setError(null);
     try {
       const minutes = durationMinutes === "" ? null : Number(durationMinutes);
       const input = {
@@ -205,13 +202,14 @@ export default function LessonForm({
         ? await updateLesson(lessonId, input)
         : await createLesson(courseId, input);
       await uploadMaterials(lesson.id);
+      toast.success(editing ? "Dars saqlandi" : "Dars yaratildi", lesson.title);
       router.push(`/${locale}/admin/courses/${courseId}/lessons`);
       router.refresh();
     } catch (reason) {
       setUploadState((current) =>
         current ? { ...current, phase: "failed" } : null,
       );
-      setError(getApiErrorMessage(reason, "Darsni saqlashda xatolik yuz berdi"));
+      toast.error(getApiErrorMessage(reason, "Darsni saqlashda xatolik yuz berdi"));
     } finally {
       setSaving(false);
     }
@@ -221,11 +219,6 @@ export default function LessonForm({
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
-      {error && (
-        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
         <div className="mb-5">

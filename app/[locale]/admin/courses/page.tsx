@@ -5,6 +5,7 @@ import { useLocale } from "next-intl";
 import { useEffect, useState } from "react";
 import { deleteCourse, listCourses, type ApiCourse } from "@/lib/admin";
 import { getApiErrorMessage } from "@/lib/auth";
+import { toast } from "@/components/ToastProvider";
 
 const LEVEL_LABEL: Record<string, string> = {
   BEGINNER: "Boshlang'ich",
@@ -16,14 +17,13 @@ export default function AdminCoursesPage() {
   const locale = useLocale();
   const [courses, setCourses] = useState<ApiCourse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   function load() {
     setLoading(true);
     listCourses()
       .then(setCourses)
-      .catch((e) => setError(getApiErrorMessage(e, "Kurslarni yuklab bo'lmadi")))
+      .catch((e) => toast.error(getApiErrorMessage(e, "Kurslarni yuklab bo'lmadi")))
       .finally(() => setLoading(false));
   }
 
@@ -37,8 +37,9 @@ export default function AdminCoursesPage() {
     try {
       await deleteCourse(c.id);
       setCourses((prev) => prev.filter((x) => x.id !== c.id));
+      toast.success("Kurs o'chirildi", c.title);
     } catch (e) {
-      alert(getApiErrorMessage(e, "O'chirishda xatolik"));
+      toast.error(getApiErrorMessage(e, "O'chirishda xatolik"));
     } finally {
       setDeleting(null);
     }
@@ -59,11 +60,6 @@ export default function AdminCoursesPage() {
         </Link>
       </div>
 
-      {error && (
-        <div className="px-4 py-3 mb-6 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
-          {error}
-        </div>
-      )}
 
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         {loading ? (

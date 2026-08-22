@@ -6,6 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import LessonAssessment from "@/components/learning/LessonAssessment";
 import SecureVideo from "@/components/learning/SecureVideo";
 import YouTubeVideo from "@/components/learning/YouTubeVideo";
+import { toast } from "@/components/ToastProvider";
 import { getApiErrorMessage } from "@/lib/auth";
 import {
   fetchCourseDetail,
@@ -27,7 +28,6 @@ export default function LessonPlayerPage({
   const [loading, setLoading] = useState(true);
   const [marking, setMarking] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const loadCourse = useCallback(async () => {
     const response = await fetchCourseDetail(courseId);
@@ -42,7 +42,7 @@ export default function LessonPlayerPage({
         if (active) setData(response);
       })
       .catch((reason) => {
-        if (active) setError(getApiErrorMessage(reason, "Kursni yuklab bo‘lmadi"));
+        if (active) toast.error(getApiErrorMessage(reason, "Kursni yuklab bo‘lmadi"));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -102,12 +102,14 @@ export default function LessonPlayerPage({
 
   async function markComplete() {
     setMarking(true);
-    setError(null);
     try {
       await saveProtectedProgress(lessonId, { completed: true });
       await loadCourse();
+      toast.success("Dars yakunlandi");
     } catch (reason) {
-      setError(getApiErrorMessage(reason, "Darsni yakunlab bo‘lmadi. Videoning kamida 90 foizini ko‘ring."));
+      toast.error(
+        getApiErrorMessage(reason, "Darsni yakunlab bo‘lmadi. Videoning kamida 90 foizini ko‘ring."),
+      );
     } finally {
       setMarking(false);
     }
@@ -183,7 +185,6 @@ export default function LessonPlayerPage({
               ) : null}
             </div>
 
-            {error && <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
             {/* Keyed so the "start test" state resets when moving between lessons. */}
             {canWatch && user && (

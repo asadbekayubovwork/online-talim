@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { routing, type Locale } from "@/i18n/routing";
 import JsonLd from "@/components/JsonLd";
 import { AuthProvider } from "@/components/AuthProvider";
+import { ToastProvider } from "@/components/ToastProvider";
 import { organizationSchema, websiteSchema } from "@/lib/structured-data";
 import {
   SITE_NAME,
@@ -136,7 +137,9 @@ export default async function LocaleLayout({
           ]}
         />
         <NextIntlClientProvider messages={messages}>
-          <AuthProvider>{children}</AuthProvider>
+          <ToastProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </ToastProvider>
         </NextIntlClientProvider>
       </body>
     </html>

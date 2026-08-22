@@ -10,6 +10,7 @@ import {
   type QuizQuestionInput,
 } from "@/lib/admin";
 import { getApiErrorMessage } from "@/lib/auth";
+import { toast } from "@/components/ToastProvider";
 
 const inputClass =
   "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
@@ -39,15 +40,13 @@ export default function QuizBuilder({ lessonId }: { lessonId: string }) {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     getAdminQuiz(lessonId)
       .then((data) => {
         if (data) setQuiz(data);
       })
-      .catch((reason) => setError(getApiErrorMessage(reason, "Testni yuklab bo‘lmadi")))
+      .catch((reason) => toast.error(getApiErrorMessage(reason, "Testni yuklab bo‘lmadi")))
       .finally(() => setLoading(false));
   }, [lessonId]);
 
@@ -58,7 +57,6 @@ export default function QuizBuilder({ lessonId }: { lessonId: string }) {
         questionIndex === index ? { ...question, ...patch } : question,
       ),
     }));
-    setSaved(false);
   }
 
   function updateChoice(questionIndex: number, choiceIndex: number, patch: Partial<QuizChoiceInput>) {
@@ -108,12 +106,10 @@ export default function QuizBuilder({ lessonId }: { lessonId: string }) {
   async function handleSave() {
     const validation = validate();
     if (validation) {
-      setError(validation);
+      toast.warning(validation);
       return;
     }
     setSaving(true);
-    setError(null);
-    setSaved(false);
     try {
       await saveQuiz(lessonId, {
         ...quiz,
@@ -129,9 +125,9 @@ export default function QuizBuilder({ lessonId }: { lessonId: string }) {
           })),
         })),
       });
-      setSaved(true);
+      toast.success("Test saqlandi", quiz.title.trim());
     } catch (reason) {
-      setError(getApiErrorMessage(reason, "Testni saqlashda xatolik yuz berdi"));
+      toast.error(getApiErrorMessage(reason, "Testni saqlashda xatolik yuz berdi"));
     } finally {
       setSaving(false);
     }
@@ -141,8 +137,6 @@ export default function QuizBuilder({ lessonId }: { lessonId: string }) {
 
   return (
     <div className="max-w-4xl space-y-6">
-      {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-      {saved && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Test saqlandi.</div>}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
         <div className="grid gap-5 sm:grid-cols-3">

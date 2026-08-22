@@ -15,6 +15,7 @@ import {
   type CourseSection,
 } from "@/lib/admin";
 import { getApiErrorMessage } from "@/lib/auth";
+import { toast } from "@/components/ToastProvider";
 
 function formatDuration(seconds: number): string {
   if (!seconds) return "Davomiylik aniqlanmoqda";
@@ -47,17 +48,15 @@ export default function CourseLessonsPage() {
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const course = await getCourse(courseId);
       setCourseTitle(course.title);
       setSections(normalizeSections(course));
     } catch (reason) {
-      setError(getApiErrorMessage(reason, "Kurs tarkibini yuklab bo‘lmadi"));
+      toast.error(getApiErrorMessage(reason, "Kurs tarkibini yuklab bo‘lmadi"));
     } finally {
       setLoading(false);
     }
@@ -71,13 +70,14 @@ export default function CourseLessonsPage() {
     event.preventDefault();
     if (!sectionTitle.trim()) return;
     setSaving("new-section");
-    setError(null);
     try {
-      await createSection(courseId, { title: sectionTitle.trim(), order: sections.length });
+      const title = sectionTitle.trim();
+      await createSection(courseId, { title, order: sections.length });
       setSectionTitle("");
       await load();
+      toast.success("Bo‘lim qo‘shildi", title);
     } catch (reason) {
-      setError(getApiErrorMessage(reason, "Bo‘limni yaratib bo‘lmadi"));
+      toast.error(getApiErrorMessage(reason, "Bo‘limni yaratib bo‘lmadi"));
     } finally {
       setSaving(null);
     }
@@ -89,13 +89,13 @@ export default function CourseLessonsPage() {
       return;
     }
     setSaving(section.id);
-    setError(null);
     try {
       const updated = await updateSection(courseId, section.id, { title: title.trim() });
       setSections((current) => current.map((item) => (item.id === section.id ? { ...item, ...updated } : item)));
       setEditingSection(null);
+      toast.success("Bo‘lim nomi yangilandi", updated.title);
     } catch (reason) {
-      setError(getApiErrorMessage(reason, "Bo‘lim nomini yangilab bo‘lmadi"));
+      toast.error(getApiErrorMessage(reason, "Bo‘lim nomini yangilab bo‘lmadi"));
     } finally {
       setSaving(null);
     }
@@ -105,12 +105,12 @@ export default function CourseLessonsPage() {
     const nextOrder = section.order + direction;
     if (nextOrder < 0 || nextOrder >= sections.length) return;
     setSaving(section.id);
-    setError(null);
     try {
       await updateSection(courseId, section.id, { order: nextOrder });
       await load();
+      toast.success("Bo‘lim tartibi yangilandi", section.title);
     } catch (reason) {
-      setError(getApiErrorMessage(reason, "Bo‘lim tartibini yangilab bo‘lmadi"));
+      toast.error(getApiErrorMessage(reason, "Bo‘lim tartibini yangilab bo‘lmadi"));
     } finally {
       setSaving(null);
     }
@@ -119,12 +119,12 @@ export default function CourseLessonsPage() {
   async function removeSection(section: CourseSection) {
     if (!window.confirm(`“${section.title}” bo‘limi va ichidagi darslar o‘chiriladi. Davom etasizmi?`)) return;
     setSaving(section.id);
-    setError(null);
     try {
       await deleteSection(courseId, section.id);
       await load();
+      toast.success("Bo‘lim o‘chirildi", section.title);
     } catch (reason) {
-      setError(getApiErrorMessage(reason, "Bo‘limni o‘chirib bo‘lmadi"));
+      toast.error(getApiErrorMessage(reason, "Bo‘limni o‘chirib bo‘lmadi"));
     } finally {
       setSaving(null);
     }
@@ -133,15 +133,15 @@ export default function CourseLessonsPage() {
   async function removeLesson(lesson: ApiLesson) {
     if (!window.confirm(`“${lesson.title}” darsini o‘chirishni tasdiqlaysizmi?`)) return;
     setSaving(lesson.id);
-    setError(null);
     try {
       await deleteLesson(lesson.id);
       setSections((current) => current.map((section) => ({
         ...section,
         lessons: section.lessons.filter((item) => item.id !== lesson.id),
       })));
+      toast.success("Dars o‘chirildi", lesson.title);
     } catch (reason) {
-      setError(getApiErrorMessage(reason, "Darsni o‘chirib bo‘lmadi"));
+      toast.error(getApiErrorMessage(reason, "Darsni o‘chirib bo‘lmadi"));
     } finally {
       setSaving(null);
     }
@@ -167,7 +167,6 @@ export default function CourseLessonsPage() {
         <button disabled={saving !== null || !sectionTitle.trim()} className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50">{saving === "new-section" ? "Yaratilmoqda…" : "+ Bo‘lim yaratish"}</button>
       </form>
 
-      {error && <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
       {loading ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Yuklanmoqda…</div>

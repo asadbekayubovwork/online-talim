@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/components/AuthProvider";
+import { toast } from "@/components/ToastProvider";
 import { changePassword, getApiErrorMessage, updateProfile } from "@/lib/auth";
 
 const fieldClass =
@@ -27,8 +28,6 @@ export default function ProfilePage() {
   });
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "" });
   const [saving, setSaving] = useState<"profile" | "password" | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -51,14 +50,12 @@ export default function ProfilePage() {
   async function saveProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving("profile");
-    setError(null);
-    setNotice(null);
     try {
       await updateProfile(profile);
       await refreshUser();
-      setNotice("Profil ma’lumotlari saqlandi.");
+      toast.success("Profil saqlandi", "Ma’lumotlaringiz yangilandi.");
     } catch (reason) {
-      setError(getApiErrorMessage(reason, "Profilni saqlab bo‘lmadi"));
+      toast.error(getApiErrorMessage(reason, "Profilni saqlab bo‘lmadi"));
     } finally {
       setSaving(null);
     }
@@ -67,14 +64,13 @@ export default function ProfilePage() {
   async function savePassword(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving("password");
-    setError(null);
-    setNotice(null);
     try {
       await changePassword(passwords);
       setPasswords({ currentPassword: "", newPassword: "" });
+      toast.success("Parol yangilandi", "Iltimos, yangi parol bilan qayta kiring.");
       router.replace(`/${locale}/login`);
     } catch (reason) {
-      setError(getApiErrorMessage(reason, "Parolni yangilab bo‘lmadi"));
+      toast.error(getApiErrorMessage(reason, "Parolni yangilab bo‘lmadi"));
     } finally {
       setSaving(null);
     }
@@ -95,8 +91,6 @@ export default function ProfilePage() {
             <p className="mt-2 text-sm text-slate-500">O‘quv profilingiz va kirish parolini boshqaring.</p>
           </div>
 
-          {notice && <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</div>}
-          {error && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
           <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
             <form onSubmit={saveProfile} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

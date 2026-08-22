@@ -11,6 +11,7 @@ import {
   type CourseLevel,
 } from "@/lib/admin";
 import { getApiErrorMessage } from "@/lib/auth";
+import { toast } from "@/components/ToastProvider";
 
 const LEVELS: { value: CourseLevel; label: string }[] = [
   { value: "BEGINNER", label: "Boshlang'ich" },
@@ -42,7 +43,6 @@ export default function CourseForm({
   const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [loading, setLoading] = useState(editing);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Yo'nalishlar ro'yxatini yuklash (tanlovchi uchun).
   useEffect(() => {
@@ -63,14 +63,13 @@ export default function CourseForm({
         setCategoryId(c.category?.id ?? c.categoryId ?? "");
         setIsPublished(c.isPublished);
       })
-      .catch((e) => setError(getApiErrorMessage(e, "Kursni yuklab bo'lmadi")))
+      .catch((e) => toast.error(getApiErrorMessage(e, "Kursni yuklab bo'lmadi")))
       .finally(() => setLoading(false));
   }, [courseId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(null);
     try {
       const payload = {
         title: title.trim(),
@@ -82,15 +81,17 @@ export default function CourseForm({
       };
       if (editing && courseId) {
         await updateCourse(courseId, { ...payload, isPublished });
+        toast.success("Kurs saqlandi", payload.title);
         router.push(`/${locale}/admin/courses`);
       } else {
         const created = await createCourse(payload);
+        toast.success("Kurs yaratildi", "Endi unga darslar qo‘shing.");
         // Yaratgandan keyin darslar qo'shishga o'tamiz.
         router.push(`/${locale}/admin/courses/${created.id}/lessons`);
       }
       router.refresh();
     } catch (err) {
-      setError(getApiErrorMessage(err, "Saqlashda xatolik yuz berdi"));
+      toast.error(getApiErrorMessage(err, "Saqlashda xatolik yuz berdi"));
     } finally {
       setSaving(false);
     }
@@ -102,12 +103,6 @@ export default function CourseForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 max-w-2xl">
-      {error && (
-        <div className="px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
-          {error}
-        </div>
-      )}
-
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">
           Kurs nomi <span className="text-red-500">*</span>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { getApiErrorMessage } from "@/lib/auth";
+import { toast } from "@/components/ToastProvider";
 import {
   listCourseReviews,
   saveCourseReview,
@@ -45,7 +46,6 @@ export default function CourseReviews({
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const rows = await listCourseReviews(courseId);
@@ -74,7 +74,7 @@ export default function CourseReviews({
         if (!cancelled) setReviews(rows);
       })
       .catch((reason) => {
-        if (!cancelled) setError(getApiErrorMessage(reason, "Baholarni yuklab bo‘lmadi"));
+        if (!cancelled) toast.error(getApiErrorMessage(reason, "Baholarni yuklab bo‘lmadi"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -92,13 +92,13 @@ export default function CourseReviews({
     event.preventDefault();
     if (!body.trim()) return;
     setSaving(true);
-    setError(null);
     try {
       await saveCourseReview(courseId, { rating, body: body.trim() });
       setBody("");
       await load();
+      toast.success("Bahoyingiz saqlandi", "Fikringiz uchun rahmat.");
     } catch (reason) {
-      setError(getApiErrorMessage(reason, "Bahoni saqlab bo‘lmadi"));
+      toast.error(getApiErrorMessage(reason, "Bahoni saqlab bo‘lmadi"));
     } finally {
       setSaving(false);
     }
@@ -151,11 +151,6 @@ export default function CourseReviews({
         </form>
       )}
 
-      {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
 
       {loading ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ApiLesson } from "@/lib/admin";
 import { getApiErrorMessage } from "@/lib/auth";
+import { toast } from "@/components/ToastProvider";
 import {
   downloadMaterial,
   getLearningLesson,
@@ -46,7 +47,6 @@ export default function LessonAssessment({
   const [result, setResult] = useState<QuizResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   // The quiz stays behind a button so it does not distract from the video.
   const [started, setStarted] = useState(false);
@@ -77,7 +77,10 @@ export default function LessonAssessment({
         setLesson(lessonData);
         setQuiz(quizData);
       })
-      .catch((reason) => active && setError(getApiErrorMessage(reason, "Dars ma’lumotlarini yuklab bo‘lmadi")))
+      .catch(
+        (reason) =>
+          active && toast.error(getApiErrorMessage(reason, "Dars ma’lumotlarini yuklab bo‘lmadi")),
+      )
       .finally(() => active && setLoading(false));
     return () => {
       active = false;
@@ -102,17 +105,16 @@ export default function LessonAssessment({
     if (!quiz) return;
     const unanswered = quiz.questions.find((question) => !(answers[question.id]?.length));
     if (unanswered) {
-      setError("Barcha savollarga javob bering.");
+      toast.warning("Barcha savollarga javob bering.");
       return;
     }
     setSubmitting(true);
-    setError(null);
     try {
       const response = await submitQuiz(lessonId, answers);
       setResult(response);
       if (response.passed) onPassed?.();
     } catch (reason) {
-      setError(getApiErrorMessage(reason, "Test javoblarini yuborib bo‘lmadi"));
+      toast.error(getApiErrorMessage(reason, "Test javoblarini yuborib bo‘lmadi"));
     } finally {
       setSubmitting(false);
     }
@@ -196,7 +198,6 @@ export default function LessonAssessment({
             ))}
           </div>
 
-          {error && <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
           {alreadyPassed && (
             <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
               Testdan muvaffaqiyatli o‘tdingiz. Keyingi dars ochildi.

@@ -9,11 +9,11 @@ import {
   type ApiCategory,
 } from "@/lib/admin";
 import { getApiErrorMessage } from "@/lib/auth";
+import { toast } from "@/components/ToastProvider";
 
 export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
@@ -28,7 +28,7 @@ export default function AdminCategoriesPage() {
     setLoading(true);
     fetchCategories()
       .then(setCategories)
-      .catch((e) => setError(getApiErrorMessage(e, "Yo'nalishlarni yuklab bo'lmadi")))
+      .catch((e) => toast.error(getApiErrorMessage(e, "Yo'nalishlarni yuklab bo'lmadi")))
       .finally(() => setLoading(false));
   }
 
@@ -39,13 +39,13 @@ export default function AdminCategoriesPage() {
     const name = newName.trim();
     if (!name) return;
     setCreating(true);
-    setError(null);
     try {
       await createCategory(name);
       setNewName("");
       load();
+      toast.success("Yo'nalish qo'shildi", name);
     } catch (err) {
-      setError(getApiErrorMessage(err, "Yo'nalish qo'shishda xatolik"));
+      toast.error(getApiErrorMessage(err, "Yo'nalish qo'shishda xatolik"));
     } finally {
       setCreating(false);
     }
@@ -65,13 +65,13 @@ export default function AdminCategoriesPage() {
     const name = editName.trim();
     if (!name) return;
     setSavingEdit(true);
-    setError(null);
     try {
       await updateCategory(id, name);
       cancelEdit();
       load();
+      toast.success("Yo'nalish yangilandi", name);
     } catch (err) {
-      setError(getApiErrorMessage(err, "Tahrirlashda xatolik"));
+      toast.error(getApiErrorMessage(err, "Tahrirlashda xatolik"));
     } finally {
       setSavingEdit(false);
     }
@@ -89,8 +89,9 @@ export default function AdminCategoriesPage() {
     try {
       await deleteCategory(c.id);
       setCategories((prev) => prev.filter((x) => x.id !== c.id));
+      toast.success("Yo'nalish o'chirildi", c.name);
     } catch (e) {
-      alert(getApiErrorMessage(e, "O'chirishda xatolik"));
+      toast.error(getApiErrorMessage(e, "O'chirishda xatolik"));
     } finally {
       setDeletingId(null);
     }
@@ -103,11 +104,6 @@ export default function AdminCategoriesPage() {
         <p className="text-gray-500 text-sm">Jami: {categories.length}</p>
       </div>
 
-      {error && (
-        <div className="px-4 py-3 mb-6 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
-          {error}
-        </div>
-      )}
 
       {/* Qo'shish formasi */}
       <form

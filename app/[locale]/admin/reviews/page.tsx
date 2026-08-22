@@ -8,6 +8,7 @@ import {
   type ReviewStatus,
 } from "@/lib/admin";
 import { getApiErrorMessage } from "@/lib/auth";
+import { toast } from "@/components/ToastProvider";
 
 export default function AdminReviewsPage() {
   const [reviews, setReviews] = useState<AdminReview[]>([]);
@@ -15,12 +16,11 @@ export default function AdminReviewsPage() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     listAdminReviews()
       .then(setReviews)
-      .catch((reason) => setError(getApiErrorMessage(reason, "Review’larni yuklab bo‘lmadi")))
+      .catch((reason) => toast.error(getApiErrorMessage(reason, "Review’larni yuklab bo‘lmadi")))
       .finally(() => setLoading(false));
   }, []);
 
@@ -40,12 +40,15 @@ export default function AdminReviewsPage() {
 
   async function changeStatus(review: AdminReview, next: ReviewStatus) {
     setSaving(review.id);
-    setError(null);
     try {
       const updated = await moderateReview(review.id, next);
       setReviews((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      toast.success(
+        updated.status === "PUBLISHED" ? "Review e’lon qilindi" : "Review yashirildi",
+        updated.courseTitle,
+      );
     } catch (reason) {
-      setError(getApiErrorMessage(reason, "Review holatini yangilab bo‘lmadi"));
+      toast.error(getApiErrorMessage(reason, "Review holatini yangilab bo‘lmadi"));
     } finally {
       setSaving(null);
     }
@@ -68,7 +71,6 @@ export default function AdminReviewsPage() {
         </select>
       </div>
 
-      {error && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
       {loading ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Yuklanmoqda…</div>

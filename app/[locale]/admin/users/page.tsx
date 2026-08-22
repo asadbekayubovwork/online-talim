@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { listUsers, updateAdminUser, type AdminUser } from "@/lib/admin";
 import { getApiErrorMessage } from "@/lib/auth";
+import { toast } from "@/components/ToastProvider";
 
 const roleLabel: Record<string, string> = {
   ADMIN: "Administrator",
@@ -16,12 +17,13 @@ export default function AdminUsersPage() {
   const [role, setRole] = useState("ALL");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     listUsers()
       .then(setUsers)
-      .catch((reason) => setError(getApiErrorMessage(reason, "Foydalanuvchilarni yuklab bo‘lmadi")))
+      .catch((reason) =>
+        toast.error(getApiErrorMessage(reason, "Foydalanuvchilarni yuklab bo‘lmadi")),
+      )
       .finally(() => setLoading(false));
   }, []);
 
@@ -43,12 +45,15 @@ export default function AdminUsersPage() {
     input: { role?: "STUDENT" | "INSTRUCTOR" | "ADMIN"; isActive?: boolean },
   ) {
     setSaving(user.id);
-    setError(null);
     try {
       const updated = await updateAdminUser(user.id, input);
       setUsers((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      toast.success(
+        "Foydalanuvchi yangilandi",
+        `${updated.firstName} ${updated.lastName}`.trim() || updated.username,
+      );
     } catch (reason) {
-      setError(getApiErrorMessage(reason, "Foydalanuvchini yangilab bo‘lmadi"));
+      toast.error(getApiErrorMessage(reason, "Foydalanuvchini yangilab bo‘lmadi"));
     } finally {
       setSaving(null);
     }
@@ -84,7 +89,6 @@ export default function AdminUsersPage() {
         </select>
       </div>
 
-      {error && <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {loading ? (
