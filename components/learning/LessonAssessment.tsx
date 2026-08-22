@@ -48,6 +48,8 @@ export default function LessonAssessment({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  // The quiz stays behind a button so it does not distract from the video.
+  const [started, setStarted] = useState(false);
 
   // The newest answer wins: a fresh submit result overrides what the page loaded.
   const lockedUntilIso = result?.lockedUntil ?? quiz?.lockedUntil ?? null;
@@ -57,6 +59,9 @@ export default function LessonAssessment({
       ? Math.max(0, Math.round((new Date(lockedUntilIso).getTime() - now) / 1000))
       : 0;
   const locked = remainingSeconds > 0;
+  // A finished or cooling-down quiz opens on its own so the student sees where
+  // they stand without having to press "start" again.
+  const showQuiz = started || alreadyPassed || locked;
 
   useEffect(() => {
     if (!locked) return;
@@ -140,7 +145,24 @@ export default function LessonAssessment({
         </section>
       ) : null}
 
-      {quiz && (
+      {quiz && !showQuiz && (
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+          <h2 className="font-bold text-slate-950">Dars testi</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            Darsni ko‘rib bo‘lgach, {quiz.questions.length} ta savoldan iborat testni ishlang.
+            O‘tish bali — {quiz.passingScore}%. Testdan o‘tganingizdan so‘ng keyingi dars ochiladi.
+          </p>
+          <button
+            type="button"
+            onClick={() => setStarted(true)}
+            className="mt-5 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+          >
+            Testni boshlash
+          </button>
+        </section>
+      )}
+
+      {quiz && showQuiz && (
         <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
           <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
             <div>

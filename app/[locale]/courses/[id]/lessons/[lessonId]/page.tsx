@@ -185,7 +185,10 @@ export default function LessonPlayerPage({
 
             {error && <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
-            {canWatch && user && <LessonAssessment lessonId={lesson.id} onPassed={loadCourse} />}
+            {/* Keyed so the "start test" state resets when moving between lessons. */}
+            {canWatch && user && (
+              <LessonAssessment key={lesson.id} lessonId={lesson.id} onPassed={loadCourse} />
+            )}
 
             <div className="mt-8 flex items-center justify-between gap-3 border-t border-slate-200 pt-6">
               {prev ? (
@@ -193,12 +196,12 @@ export default function LessonPlayerPage({
                   ← Oldingi dars
                 </Link>
               ) : <span />}
+              {/* Appears only once the lesson — and its quiz, when required —
+                  is finished, so there is nothing to click past the test. */}
               {next && !next.locked ? (
                 <Link href={lessonHref(next.id)} className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700">
                   Keyingi dars →
                 </Link>
-              ) : next ? (
-                <span className="cursor-not-allowed rounded-xl bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-500">🔒 Keyingi dars</span>
               ) : null}
             </div>
           </div>
