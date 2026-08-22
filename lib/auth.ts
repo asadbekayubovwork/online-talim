@@ -36,21 +36,18 @@ export interface LoginPayload {
   password: string;
 }
 
+/**
+ * Sign-up only collects what an account needs. The rest of the profile
+ * (city, country, WhatsApp, university id, nationality) is filled in later
+ * on the profile page — see {@link updateProfile}.
+ */
 export interface RegisterPayload {
-  username: string;
-  password: string;
-  email: string;
   firstName: string;
   lastName: string;
-  birthDay?: number;
-  birthMonth?: number;
-  birthYear?: number;
-  nationality?: string;
-  city?: string;
-  country?: string;
+  username: string;
+  email: string;
+  password: string;
   phone?: string;
-  universityId?: string;
-  whatsapp?: string;
 }
 
 const ACCESS_KEY = "accessToken";

@@ -4,9 +4,9 @@ import { useLocale } from "next-intl";
 import Link from "next/link";
 
 const departments = [
-  { href: "/courses?cat=fiqh", label: "Hanafiy fiqhi va uning usuli darslari", arabic: "الفِقْهُ الحَنَفِيُّ وَأُصُولُهُ" },
-  { href: "/courses?cat=aqida", label: "Aqida darslari", arabic: "العَقِيدَة" },
-  { href: "/courses?cat=tazkiya", label: "Tazkiya darslari", arabic: "التَّزْكِيَة" },
+  { href: "/courses?cat=fiqh", label: "Hanafiy fiqhi va uning usuli darslari" },
+  { href: "/courses?cat=aqida", label: "Aqida darslari"},
+  { href: "/courses?cat=tazkiya", label: "Tazkiya darslari"},
 ];
 
 const quickLinks = [
@@ -38,9 +38,6 @@ export default function Footer() {
                 Abu-Hanifa <span className="text-blue-400">akademiyasi</span>
               </span>
             </Link>
-            <p className="text-slate-400 text-sm leading-relaxed mb-5">
-              Islomiy ilmlar bo'yicha onlayn ta'lim platformasi. Tayyorlovdan Muftiy darajasigacha.
-            </p>
             <p className="text-slate-500 text-sm italic" dir="rtl">
               طلب العلم فريضة على كل مسلم
             </p>
@@ -61,9 +58,6 @@ export default function Footer() {
                   >
                     <span className="text-slate-300 group-hover:text-blue-400 text-sm transition-colors">
                       {d.label}
-                    </span>
-                    <span className="text-slate-600 text-xs group-hover:text-blue-500 transition-colors" dir="rtl">
-                      {d.arabic}
                     </span>
                   </Link>
                 </li>

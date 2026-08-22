@@ -102,7 +102,6 @@ export default function CoursesSection() {
         {/* Category filter tabs (dynamic) */}
         {status === "ready" && categories.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap mb-8">
-            {/* "Barchasi" tugmasi */}
             <button
               onClick={() => setActive("all")}
               className={`flex flex-col items-start px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer border ${
@@ -112,9 +111,6 @@ export default function CoursesSection() {
               }`}
             >
               <span>{t("filterAll")}</span>
-              <span className={`text-xs mt-0.5 font-normal ${active === "all" ? "text-blue-200" : "text-gray-400"}`} dir="rtl">
-                الجميع
-              </span>
             </button>
 
             {categories.map((cat) => {

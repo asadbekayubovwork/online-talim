@@ -90,16 +90,6 @@ export default function CourseCard({ course }: { course: CatalogCourse }) {
           {course.description}
         </p>
 
-        {/* Instructor */}
-        {course.instructor && (
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-              {course.instructor[0]}
-            </div>
-            <span className="text-xs text-gray-600 font-medium truncate">{course.instructor}</span>
-          </div>
-        )}
-
         {/* Meta */}
         <div className="flex items-center gap-4 text-xs text-gray-400 mt-auto pt-3 border-t border-gray-100 mb-4">
           <span className="flex items-center gap-1">

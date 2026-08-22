@@ -141,6 +141,13 @@ function apiLessons(course: ApiCourse): ApiLesson[] {
   return course.lessons ?? [];
 }
 
+// API narxni Decimal string ("0.00") ko'rinishida qaytarishi mumkin —
+// 0, bo'sh yoki yaroqsiz qiymat "bepul" (null) deb qaraladi.
+function normalizePrice(price: ApiCourse["price"] | string | null | undefined): number | null {
+  const value = Number(price);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
 export function mapCourse(course: ApiCourse): CatalogCourse {
   const category = mapCategory(course.category?.name);
   const style = CATEGORY_STYLE[category];
@@ -162,7 +169,7 @@ export function mapCourse(course: ApiCourse): CatalogCourse {
     hours: hoursFromSeconds(totalSeconds),
     students: course.enrollmentCount ?? course._count?.enrollments ?? 0,
     level: mapLevel(course.level),
-    price: !course.price ? null : course.price,
+    price: normalizePrice(course.price),
     color: style.color,
     icon: style.icon,
     thumbnail: course.thumbnail ?? null,
